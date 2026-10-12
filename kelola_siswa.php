@@ -1,248 +1,331 @@
-
 <?php
 session_start();
-require_once "config.php";
+require_once __DIR__ . "/config.php";
 
-if (
-    !isset($_SESSION["role"]) ||
-    strtolower($_SESSION["role"]) !== "admin"
-) {
-    exit("Akses ditolak. Login sebagai Admin terlebih dahulu.");
+error_reporting(E_ALL);
+ini_set("display_errors", "1");
+
+if (!isset($_SESSION["id_user"])) {
+    header("Location: login.php");
+    exit;
 }
 
-function h($data) {
-    return htmlspecialchars((string)$data, ENT_QUOTES, "UTF-8");
+function e($value): string
+{
+    return htmlspecialchars((string)($value ?? ""), ENT_QUOTES, "UTF-8");
 }
 
 $pesan = "";
+$error = "";
+$edit = null;
 
-// Tambah siswa
-if (isset($_POST["tambah"])) {
-    $nis = trim($_POST["nis"]);
-    $nish = trim($_POST["nish"]);
-    $nama = trim($_POST["nama"]);
-    $jk = $_POST["jenis_kelamin"];
-    $tanggal = $_POST["tanggal_lahir"];
-    $alamat = trim($_POST["alamat"]);
-    $status = (int)$_POST["status_aktif"];
+// Ambil nama kolom tabel agar kode lebih aman terhadap perbedaan struktur.
+try {
+    $columnStmt = $pdo->query("SHOW COLUMNS FROM t_siswa");
+    $columnRows = $columnStmt->fetchAll(PDO::FETCH_ASSOC);
+    $columns = array_column($columnRows, "Field");
 
-    try {
-        $sql = "INSERT INTO t_siswa
-                (nis, nish, nama, jenis_kelamin,
-                 tanggal_lahir, alamat, status_aktif,
-                 created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+    $requiredColumns = [
+        "id", "nip", "nisn", "nama", "jenis_kelamin", "tanggal_lahir",
+        "alamat", "status_aktif", "created_at", "updated_at"
+    ];
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $nis, $nish, $nama, $jk,
-            $tanggal, $alamat, $status
-        ]);
+    $missingColumns = array_values(array_diff($requiredColumns, $columns));
 
-        header("Location: kelola_siswa.php?pesan=tambah");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Gagal menambahkan siswa. Periksa NIS dan NISH agar tidak duplikat.";
-    }
-}
-
-// Edit siswa
-if (isset($_POST["edit"])) {
-    $id = (int)$_POST["id"];
-    $nis = trim($_POST["nis"]);
-    $nish = trim($_POST["nish"]);
-    $nama = trim($_POST["nama"]);
-    $jk = $_POST["jenis_kelamin"];
-    $tanggal = $_POST["tanggal_lahir"];
-    $alamat = trim($_POST["alamat"]);
-    $status = (int)$_POST["status_aktif"];
-
-    try {
-        $sql = "UPDATE t_siswa SET
-                nis = ?, nish = ?, nama = ?,
-                jenis_kelamin = ?, tanggal_lahir = ?,
-                alamat = ?, status_aktif = ?,
-                updated_at = NOW()
-                WHERE id = ?";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $nis, $nish, $nama, $jk,
-            $tanggal, $alamat, $status, $id
-        ]);
-
-        header("Location: kelola_siswa.php?pesan=edit");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Gagal mengubah data siswa.";
-    }
-}
-
-// Hapus siswa
-if (isset($_GET["hapus"])) {
-    $id = (int)$_GET["hapus"];
-
-    try {
-        $stmt = $pdo->prepare(
-            "DELETE FROM t_siswa WHERE id = ?"
+    if ($missingColumns) {
+        throw new RuntimeException(
+            "Kolom berikut tidak ditemukan di t_siswa: " .
+            implode(", ", $missingColumns) .
+            ". Periksa tab Struktur di phpMyAdmin."
         );
-        $stmt->execute([$id]);
+    }
+} catch (Throwable $ex) {
+    $error = "Gagal membaca struktur tabel t_siswa: " . $ex->getMessage();
+    $columns = [];
+}
 
+// Proses tambah/edit siswa
+if (
+    !$error &&
+    $_SERVER["REQUEST_METHOD"] === "POST" &&
+    isset($_POST["simpan_siswa"])
+) {
+    $id = (int)($_POST["id"] ?? 0);
+    $nip = trim($_POST["nip"] ?? "");
+    $nisn = trim($_POST["nisn"] ?? "");
+    $nama = trim($_POST["nama"] ?? "");
+    $jk = trim($_POST["jenis_kelamin"] ?? "");
+    $tgl_lahir = trim($_POST["tanggal_lahir"] ?? "");
+    $alamat = trim($_POST["alamat"] ?? "");
+    $status_aktif = (int)($_POST["status_aktif"] ?? 1);
+
+    if ($nip === "" || $nisn === "" || $nama === "") {
+        $error = "NIP, NISN, dan nama siswa wajib diisi.";
+    } elseif (!in_array($jk, ["L", "P"], true)) {
+        $error = "Jenis kelamin harus L atau P.";
+    } elseif (!in_array($status_aktif, [0, 1], true)) {
+        $error = "Status aktif tidak valid.";
+    } elseif ($tgl_lahir !== "" &&
+              !preg_match('/^\d{4}-\d{2}-\d{2}$/', $tgl_lahir)) {
+        $error = "Tanggal lahir harus menggunakan format YYYY-MM-DD.";
+    } else {
+        try {
+            $check = $pdo->prepare(
+                "SELECT id FROM t_siswa
+                 WHERE (nip = ? OR nisn = ?) AND id <> ? LIMIT 1"
+            );
+            $check->execute([$nip, $nisn, $id]);
+
+            if ($check->fetch(PDO::FETCH_ASSOC)) {
+                $error = "NIP atau NISN sudah digunakan siswa lain.";
+            } else {
+                if ($id > 0) {
+                    $stmt = $pdo->prepare(
+                        "UPDATE t_siswa
+                         SET nip = ?, nisn = ?, nama = ?, jenis_kelamin = ?,
+                             tanggal_lahir = ?, alamat = ?, status_aktif = ?,
+                             updated_at = CURRENT_TIMESTAMP
+                         WHERE id = ?"
+                    );
+                    $stmt->execute([
+                        $nip, $nisn, $nama, $jk,
+                        $tgl_lahir === "" ? null : $tgl_lahir,
+                        $alamat === "" ? null : $alamat,
+                        $status_aktif, $id
+                    ]);
+                } else {
+                    $stmt = $pdo->prepare(
+                        "INSERT INTO t_siswa
+                         (nip, nisn, nama, jenis_kelamin, tanggal_lahir, alamat,
+                          status_aktif, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?,
+                                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                    );
+                    $stmt->execute([
+                        $nip, $nisn, $nama, $jk,
+                        $tgl_lahir === "" ? null : $tgl_lahir,
+                        $alamat === "" ? null : $alamat,
+                        $status_aktif
+                    ]);
+                }
+
+                header("Location: kelola_siswa.php?pesan=simpan");
+                exit;
+            }
+        } catch (PDOException $ex) {
+            error_log($ex->getMessage());
+            $error = "Gagal menyimpan siswa. Pastikan kolom tabel sesuai dan NIP/NISN tidak duplikat.";
+        }
+    }
+}
+
+// Proses hapus siswa. Tidak menghapus tabel/database.
+if (
+    !$error &&
+    $_SERVER["REQUEST_METHOD"] === "POST" &&
+    isset($_POST["hapus_id"])
+) {
+    try {
+        $stmt = $pdo->prepare("DELETE FROM t_siswa WHERE id = ?");
+        $stmt->execute([(int)$_POST["hapus_id"]]);
         header("Location: kelola_siswa.php?pesan=hapus");
         exit;
-    } catch (PDOException $e) {
-        $pesan = "Siswa tidak dapat dihapus karena masih memiliki data terkait.";
+    } catch (PDOException $ex) {
+        error_log($ex->getMessage());
+        $error = "Siswa tidak dapat dihapus, mungkin masih dipakai data lain.";
     }
 }
 
-// Pesan
-if (isset($_GET["pesan"])) {
-    $pesan = match ($_GET["pesan"]) {
-        "tambah" => "Siswa berhasil ditambahkan.",
-        "edit" => "Data siswa berhasil diubah.",
-        "hapus" => "Data siswa berhasil dihapus.",
-        default => ""
-    };
+if (($_GET["pesan"] ?? "") === "simpan") {
+    $pesan = "Data siswa berhasil disimpan.";
+} elseif (($_GET["pesan"] ?? "") === "hapus") {
+    $pesan = "Data siswa berhasil dihapus.";
 }
 
-// Data untuk edit
-$dataEdit = null;
+// Ambil data untuk form edit
+if (!$error && isset($_GET["edit"])) {
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM t_siswa WHERE id = ?");
+        $stmt->execute([(int)$_GET["edit"]]);
+        $edit = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (isset($_GET["edit"])) {
-    $stmt = $pdo->prepare(
-        "SELECT * FROM t_siswa WHERE id = ?"
-    );
-    $stmt->execute([(int)$_GET["edit"]]);
-    $dataEdit = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$dataEdit) {
-        $pesan = "Data siswa tidak ditemukan.";
+        if (!$edit) {
+            $error = "Data siswa tidak ditemukan.";
+        }
+    } catch (PDOException $ex) {
+        $error = "Gagal mengambil data siswa.";
     }
 }
 
-// Tampilkan siswa
-$stmt = $pdo->query(
-    "SELECT * FROM t_siswa ORDER BY id DESC"
-);
-$siswa = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Pencarian dan daftar siswa
+$dataSiswa = [];
+$cari = trim($_GET["cari"] ?? "");
+
+if (!$error) {
+    try {
+        $sql = "SELECT id, nip, nisn, nama, jenis_kelamin, tanggal_lahir, alamat,
+                       status_aktif, created_at, updated_at
+                FROM t_siswa";
+        $params = [];
+
+        if ($cari !== "") {
+            $sql .= " WHERE nip LIKE ? OR nisn LIKE ? OR nama LIKE ?";
+            $keyword = "%" . $cari . "%";
+            $params = [$keyword, $keyword, $keyword];
+        }
+
+        $sql .= " ORDER BY id DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $dataSiswa = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $ex) {
+        $error = "Gagal mengambil daftar siswa.";
+        error_log($ex->getMessage());
+    }
+}
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Kelola Siswa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Data Siswa</title>
 </head>
 <body>
 
-<h2>KELOLA DATA SISWA</h2>
+<h2>Kelola Data Siswa</h2>
+<p><a href="dashboard.php">Kembali ke Dashboard</a></p>
 
-<p><?php echo h($pesan); ?></p>
+<?php if ($pesan !== ""): ?>
+    <p><?php echo e($pesan); ?></p>
+<?php endif; ?>
 
-<p><a href="dashboard (1).php">Kembali ke Dashboard</a></p>
+<?php if ($error !== ""): ?>
+    <p><strong>Terjadi kesalahan:</strong> <?php echo e($error); ?></p>
+<?php endif; ?>
 
-<hr>
+<?php if (!$error): ?>
+    <hr>
+    <h3><?php echo $edit ? "Edit Data Siswa" : "Tambah Data Siswa"; ?></h3>
 
-<h3><?php echo $dataEdit ? "Edit Siswa" : "Tambah Siswa"; ?></h3>
+    <form method="post" action="kelola_siswa.php">
+        <input type="hidden" name="simpan_siswa" value="1">
+        <input type="hidden" name="id" value="<?php echo (int)($edit["id"] ?? 0); ?>">
 
-<form method="POST" action="kelola_siswa.php">
+        <p>
+            <label for="nip">NIP:</label><br>
+            <input type="text" id="nip" name="nip" required
+                   value="<?php echo e($edit["nip"] ?? ""); ?>">
+        </p>
 
-    <?php if ($dataEdit): ?>
-        <input type="hidden" name="id"
-               value="<?php echo h($dataEdit["id"]); ?>">
-    <?php endif; ?>
+        <p>
+            <label for="nisn">NISN:</label><br>
+            <input type="text" id="nisn" name="nisn" required
+                   value="<?php echo e($edit["nisn"] ?? ""); ?>">
+        </p>
 
-    <p>NIS:</p>
-    <input type="text" name="nis" required
-           value="<?php echo h($dataEdit["nis"] ?? ""); ?>">
+        <p>
+            <label for="nama">Nama Siswa:</label><br>
+            <input type="text" id="nama" name="nama" required
+                   value="<?php echo e($edit["nama"] ?? ""); ?>">
+        </p>
 
-    <p>NISH:</p>
-    <input type="text" name="nish" required
-           value="<?php echo h($dataEdit["nish"] ?? ""); ?>">
+        <p>
+            <label for="jenis_kelamin">Jenis Kelamin:</label><br>
+            <select id="jenis_kelamin" name="jenis_kelamin" required>
+                <option value="">-- Pilih --</option>
+                <option value="L" <?php echo (($edit["jenis_kelamin"] ?? "") === "L") ? "selected" : ""; ?>>Laki-laki</option>
+                <option value="P" <?php echo (($edit["jenis_kelamin"] ?? "") === "P") ? "selected" : ""; ?>>Perempuan</option>
+            </select>
+        </p>
 
-    <p>Nama Siswa:</p>
-    <input type="text" name="nama" required
-           value="<?php echo h($dataEdit["nama"] ?? ""); ?>">
+        <p>
+            <label for="tanggal_lahir">Tanggal Lahir:</label><br>
+            <input type="date" id="tanggal_lahir" name="tanggal_lahir"
+                   value="<?php echo e($edit["tanggal_lahir"] ?? ""); ?>">
+        </p>
 
-    <p>Jenis Kelamin:</p>
-    <select name="jenis_kelamin" required>
-        <option value="">-- Pilih --</option>
-        <option value="L"
-            <?php echo ($dataEdit["jenis_kelamin"] ?? "") === "L"
-                ? "selected" : ""; ?>>Laki-laki</option>
-        <option value="P"
-            <?php echo ($dataEdit["jenis_kelamin"] ?? "") === "P"
-                ? "selected" : ""; ?>>Perempuan</option>
-    </select>
+        <p>
+            <label for="alamat">Alamat:</label><br>
+            <textarea id="alamat" name="alamat" rows="3" cols="40"><?php echo e($edit["alamat"] ?? ""); ?></textarea>
+        </p>
 
-    <p>Tanggal Lahir:</p>
-    <input type="date" name="tanggal_lahir" required
-           value="<?php echo h($dataEdit["tanggal_lahir"] ?? ""); ?>">
+        <p>
+            <label for="status_aktif">Status Aktif:</label><br>
+            <select id="status_aktif" name="status_aktif">
+                <option value="1" <?php echo (int)($edit["status_aktif"] ?? 1) === 1 ? "selected" : ""; ?>>Aktif</option>
+                <option value="0" <?php echo isset($edit["status_aktif"]) && (int)$edit["status_aktif"] === 0 ? "selected" : ""; ?>>Tidak Aktif</option>
+            </select>
+        </p>
 
-    <p>Alamat:</p>
-    <textarea name="alamat" required><?php
-        echo h($dataEdit["alamat"] ?? "");
-    ?></textarea>
-
-    <p>Status Aktif:</p>
-    <select name="status_aktif" required>
-        <option value="1"
-            <?php echo (string)($dataEdit["status_aktif"] ?? "1") === "1"
-                ? "selected" : ""; ?>>Aktif</option>
-        <option value="0"
-            <?php echo (string)($dataEdit["status_aktif"] ?? "") === "0"
-                ? "selected" : ""; ?>>Tidak Aktif</option>
-    </select>
-
-    <p>
-        <?php if ($dataEdit): ?>
-            <button type="submit" name="edit">Simpan Perubahan</button>
+        <button type="submit">Simpan</button>
+        <?php if ($edit): ?>
             <a href="kelola_siswa.php">Batal</a>
-        <?php else: ?>
-            <button type="submit" name="tambah">Tambah Siswa</button>
         <?php endif; ?>
-    </p>
+    </form>
 
-</form>
+    <hr>
+    <h3>Daftar Data Siswa</h3>
 
-<hr>
+    <form method="get" action="kelola_siswa.php">
+        <input type="text" name="cari"
+               placeholder="Cari NIP, NISN, atau nama"
+               value="<?php echo e($cari); ?>">
+        <button type="submit">Cari</button>
+        <a href="kelola_siswa.php">Reset</a>
+    </form>
 
-<h3>Daftar Siswa</h3>
+    <br>
 
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>NIS</th>
-        <th>NISH</th>
-        <th>Nama</th>
-        <th>Jenis Kelamin</th>
-        <th>Tanggal Lahir</th>
-        <th>Alamat</th>
-        <th>Status</th>
-        <th>Aksi</th>
-    </tr>
-
-    <?php foreach ($siswa as $s): ?>
-    <tr>
-        <td><?php echo h($s["id"]); ?></td>
-        <td><?php echo h($s["nis"]); ?></td>
-        <td><?php echo h($s["nish"]); ?></td>
-        <td><?php echo h($s["nama"]); ?></td>
-        <td><?php echo h($s["jenis_kelamin"]); ?></td>
-        <td><?php echo h($s["tanggal_lahir"]); ?></td>
-        <td><?php echo h($s["alamat"]); ?></td>
-        <td><?php echo $s["status_aktif"] ? "Aktif" : "Tidak Aktif"; ?></td>
-        <td>
-            <a href="kelola_siswa.php?edit=<?php echo h($s["id"]); ?>">Edit</a>
-            |
-            <a href="kelola_siswa.php?hapus=<?php echo h($s["id"]); ?>"
-               onclick="return confirm('Yakin hapus siswa ini?')">
-                Hapus
-            </a>
-        </td>
-    </tr>
-    <?php endforeach; ?>
-</table>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <thead>
+        <tr>
+            <th>No.</th>
+            <th>NIP</th>
+            <th>NISN</th>
+            <th>Nama</th>
+            <th>Jenis Kelamin</th>
+            <th>Tanggal Lahir</th>
+            <th>Alamat</th>
+            <th>Status Aktif</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+            <th>Aksi</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php if ($dataSiswa): ?>
+            <?php foreach ($dataSiswa as $i => $siswa): ?>
+                <tr>
+                    <td><?php echo $i + 1; ?></td>
+                    <td><?php echo e($siswa["nip"]); ?></td>
+                    <td><?php echo e($siswa["nisn"]); ?></td>
+                    <td><?php echo e($siswa["nama"]); ?></td>
+                    <td><?php echo e($siswa["jenis_kelamin"] === "L" ? "Laki-laki" : ($siswa["jenis_kelamin"] === "P" ? "Perempuan" : $siswa["jenis_kelamin"])); ?></td>
+                    <td><?php echo e($siswa["tanggal_lahir"]); ?></td>
+                    <td><?php echo e($siswa["alamat"]); ?></td>
+                    <td><?php echo (int)$siswa["status_aktif"] === 1 ? "Aktif" : "Tidak Aktif"; ?></td>
+                    <td><?php echo e($siswa["created_at"]); ?></td>
+                    <td><?php echo e($siswa["updated_at"]); ?></td>
+                    <td>
+                        <a href="kelola_siswa.php?edit=<?php echo (int)$siswa["id"]; ?>">Edit</a>
+                        <form method="post" action="kelola_siswa.php"
+                              onsubmit="return confirm('Yakin ingin menghapus data siswa ini?');">
+                            <input type="hidden" name="hapus_id"
+                                   value="<?php echo (int)$siswa["id"]; ?>">
+                            <button type="submit">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr>
+                <td colspan="11">Data siswa tidak ditemukan.</td>
+            </tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
 
 </body>
 </html>
