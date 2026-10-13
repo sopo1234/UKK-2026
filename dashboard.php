@@ -38,7 +38,7 @@ $roleTampil = htmlspecialchars($role, ENT_QUOTES, 'UTF-8');
             </h4>
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link active">
+                    <a href="dashboard.php" class="nav-link active">
                         Dashboard
                     </a>
                 </li>
@@ -48,7 +48,7 @@ $roleTampil = htmlspecialchars($role, ENT_QUOTES, 'UTF-8');
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white">
+                    <a href="kelola_guru.php" class="nav-link text-white">
                         Data Guru
                     </a>
                 </li>
