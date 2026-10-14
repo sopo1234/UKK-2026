@@ -1,75 +1,52 @@
 <?php
 session_start();
-require_once __DIR__ . "/config.php";
 
-error_reporting(E_ALL);
-ini_set("display_errors", "1");
-
-$error = "";
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $email = trim($_POST["email"] ?? "");
-    $password = $_POST["password"] ?? "";
-
-    if ($email === "" || $password === "") {
-        $error = "Email dan password wajib diisi.";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "SELECT id, name, email, password, role
-                 FROM t_user
-                 WHERE email = ?
-                 LIMIT 1"
-            );
-            $stmt->execute([$email]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($user && password_verify($password, $user["password"])) {
-                session_regenerate_id(true);
-                $_SESSION["id_user"] = $user["id"];
-                $_SESSION["user_id"] = $user["id"];
-                $_SESSION["username"] = $user["name"];
-                $_SESSION["email"] = $user["email"];
-                $_SESSION["role"] = strtolower($user["role"]);
-
-                header("Location: dashboard.php");
-                exit;
-            } else {
-                $error = "Email atau password salah.";
-            }
-        } catch (PDOException $e) {
-            error_log($e->getMessage());
-            $error = "Terjadi kesalahan saat memeriksa akun.";
-        }
-    }
+if (isset($_SESSION['id_user'])) {
+    header("Location: dashboard.php");
+    exit;
 }
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login UKK-2026</title>
+    <title>Login</title>
 </head>
 <body>
-<h2>LOGIN UKK-2026</h2>
-<p>Silakan login menggunakan akun yang terdaftar.</p>
 
-<?php if ($error !== ""): ?>
-    <p><?php echo htmlspecialchars($error, ENT_QUOTES, "UTF-8"); ?></p>
-<?php endif; ?>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
-<form method="POST" action="login.php">
-    <p>
-        <label for="email">Email:</label><br>
-        <input type="email" id="email" name="email" required autocomplete="username"
-               value="<?php echo htmlspecialchars($_POST["email"] ?? "", ENT_QUOTES, "UTF-8"); ?>">
-    </p>
-    <p>
-        <label for="password">Password:</label><br>
-        <input type="password" id="password" name="password" required autocomplete="current-password">
-    </p>
-    <button type="submit">Login</button>
+<h2>Login</h2>
+<form action="/UKK-2026/proses_login.php" method="POST">
+  <div class="form-group">
+    <label for="exampleInputEmail1">Email address</label>
+    <input type="email" name= "email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+    <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+  </div>
+  <div class="form-group">
+    <label for="exampleInputPassword1">Password</label>
+    <input type="password" name= "password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+<!-- <form action="proses_login.php" method="POST">
+
+    <label>Email</label><br>
+    <input type="email" name="email" required>
+
+    <br><br>
+
+    <label>Password</label><br>
+    <input type="password" name="password" required>
+
+    <br><br>
+
+    <button type="submit">Login</button>
+
+</form> -->
+
 </body>
 </html>
