@@ -1,269 +1,259 @@
-
 <?php
+
 session_start();
-require_once "config.php";
 
-if (
-    !isset($_SESSION["role"]) ||
-    strtolower($_SESSION["role"]) !== "admin"
-) {
-    exit("Akses ditolak. Login sebagai Admin terlebih dahulu.");
+include 'config/koneksi.php';
+
+// CEK LOGIN
+if (!isset($_SESSION['login'])) {
+    header("Location: login.php");
+    exit;
 }
 
-function h($nilai) {
-    return htmlspecialchars((string)$nilai, ENT_QUOTES, "UTF-8");
+// CEK ROLE
+if ($_SESSION['role'] != 'admin') {
+    echo "Akses ditolak!";
+    exit;
 }
 
-$pesan = "";
+// AMBIL DATA
+$sql = "SELECT *
+        FROM t_kelas_siswa
+        ORDER BY id DESC";
 
-// Tambah penempatan siswa
-if (isset($_POST["tambah"])) {
-    $siswa_id = (int)$_POST["siswa_id"];
-    $tahun_id = (int)$_POST["tahun_ajaran_id"];
-    $kelas_id = (int)$_POST["kelas_id"];
-    $mulai = $_POST["tanggal_mulai"];
-    $selesai = $_POST["tanggal_selesai"] ?: null;
-    $status = (int)$_POST["status_aktif"];
+$hasil = mysqli_query($koneksi, $sql);
 
-    if ($selesai !== null && $mulai > $selesai) {
-        $pesan = "Tanggal mulai tidak boleh setelah tanggal selesai.";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "INSERT INTO t_kelas_siswa
-                (siswa_id, tahun_ajaran_id, kelas_id,
-                 tanggal_mulai, tanggal_selesai, status_aktif,
-                 created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())"
-            );
-
-            $stmt->execute([
-                $siswa_id, $tahun_id, $kelas_id,
-                $mulai, $selesai, $status
-            ]);
-
-            header("Location: kelola_kelas_siswa.php?pesan=tambah");
-            exit;
-        } catch (PDOException $e) {
-            $pesan = "Gagal menambah penempatan. Periksa ID siswa, kelas, dan tahun ajaran.";
-        }
-    }
+if (!$hasil) {
+    die("Gagal mengambil data kelas: " . mysqli_error($koneksi));
 }
 
-// Edit penempatan
-if (isset($_POST["edit"])) {
-    $id = (int)$_POST["id"];
-    $siswa_id = (int)$_POST["siswa_id"];
-    $tahun_id = (int)$_POST["tahun_ajaran_id"];
-    $kelas_id = (int)$_POST["kelas_id"];
-    $mulai = $_POST["tanggal_mulai"];
-    $selesai = $_POST["tanggal_selesai"] ?: null;
-    $status = (int)$_POST["status_aktif"];
-
-    if ($selesai !== null && $mulai > $selesai) {
-        $pesan = "Tanggal mulai tidak boleh setelah tanggal selesai.";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "UPDATE t_kelas_siswa SET
-                 siswa_id = ?, tahun_ajaran_id = ?, kelas_id = ?,
-                 tanggal_mulai = ?, tanggal_selesai = ?,
-                 status_aktif = ?, updated_at = NOW()
-                 WHERE id = ?"
-            );
-
-            $stmt->execute([
-                $siswa_id, $tahun_id, $kelas_id,
-                $mulai, $selesai, $status, $id
-            ]);
-
-            header("Location: kelola_kelas_siswa.php?pesan=edit");
-            exit;
-        } catch (PDOException $e) {
-            $pesan = "Gagal mengubah penempatan siswa.";
-        }
-    }
-}
-
-// Hapus penempatan
-if (isset($_GET["hapus"])) {
-    try {
-        $stmt = $pdo->prepare(
-            "DELETE FROM t_kelas_siswa WHERE id = ?"
-        );
-        $stmt->execute([(int)$_GET["hapus"]]);
-
-        header("Location: kelola_kelas_siswa.php?pesan=hapus");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Data penempatan tidak dapat dihapus.";
-    }
-}
-
-// Pesan
-if (isset($_GET["pesan"])) {
-    $daftarPesan = [
-        "tambah" => "Penempatan siswa berhasil ditambahkan.",
-        "edit" => "Penempatan siswa berhasil diperbarui.",
-        "hapus" => "Penempatan siswa berhasil dihapus."
-    ];
-    $pesan = $daftarPesan[$_GET["pesan"]] ?? "";
-}
-
-// Data edit
-$dataEdit = null;
-
-if (isset($_GET["edit"])) {
-    $stmt = $pdo->prepare(
-        "SELECT * FROM t_kelas_siswa WHERE id = ?"
-    );
-    $stmt->execute([(int)$_GET["edit"]]);
-    $dataEdit = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$dataEdit) {
-        $pesan = "Data penempatan tidak ditemukan.";
-    }
-}
-
-// Pilihan siswa, kelas, dan tahun ajaran
-$siswa = $pdo->query(
-    "SELECT id, nis, nama FROM t_siswa ORDER BY nama"
-)->fetchAll(PDO::FETCH_ASSOC);
-
-$kelas = $pdo->query(
-    "SELECT id, nama FROM t_kelas ORDER BY nama"
-)->fetchAll(PDO::FETCH_ASSOC);
-
-$tahun = $pdo->query(
-    "SELECT id, nama FROM t_tahun_ajaran ORDER BY id DESC"
-)->fetchAll(PDO::FETCH_ASSOC);
-
-// Daftar penempatan
-$data = $pdo->query(
-    "SELECT ks.*, s.nama AS nama_siswa, k.nama AS nama_kelas,
-            ta.nama AS nama_tahun
-     FROM t_kelas_siswa ks
-     LEFT JOIN t_siswa s ON ks.siswa_id = s.id
-     LEFT JOIN t_kelas k ON ks.kelas_id = k.id
-     LEFT JOIN t_tahun_ajaran ta ON ks.tahun_ajaran_id = ta.id
-     ORDER BY ks.id DESC"
-)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset="UTF-8">
-    <title>Kelola Penempatan Siswa</title>
+    <title>Kelola Kelas</title>
+    <style>/* Sidebar tetap di kiri dan memenuhi tinggi layar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+/* Mengatur posisi konten utama */
+main {
+    margin-left: 16.666667%;
+}
+
+/* Untuk layar besar */
+@media (min-width: 992px) {
+    main {
+        margin-left: 16.666667%;
+    }
+}
+
+/* Untuk layar kecil */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    main {
+        margin-left: 0;
+    }
+}</style>
 </head>
+
 <body>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+        <div class="col-md-3 col-lg-2 bg-dark p-3 sidebar">
+            <h4 class="text-white mb-4">
+                My Website
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link text-white">
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_siswa.php" class="nav-link text-white">
+                        Data Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_guru.php" class="nav-link text-white">
+                        Data Guru
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="Kelola_kelas_siswa.php" class="nav-link active">
+                        Kelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                        Kelola Tahun Ajaran
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="#" class="nav-link text-white">
+                        Kelola Walikelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="#" class="nav-link text-white">
+                        Penempatan Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="#" class="nav-link text-white">
+                        Pelanggaran Kategori
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="about_me.php" class="nav-link text-white">
+                        About Me
+                    </a>
+                </li>
+                
+                <hr class="text-secondary">
+                <li class="nav-item">
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+          <main class="col-md-9 col-lg-10 p-4">
+<h1>Kelola Kelas</h1>
 
-<h2>KELOLA PENEMPATAN SISWA</h2>
+<a href="dashboard.php">
+    Kembali ke Dashboard
+</a>
 
-<p><?php echo h($pesan); ?></p>
-<p><a href="dashboard.php">Kembali ke Dashboard</a></p>
+<br><br>
+
+<a href="tambah_kelas.php">
+    Tambah Kelas
+</a>
 
 <hr>
 
-<h3><?php echo $dataEdit ? "Edit Penempatan" : "Tambah Penempatan"; ?></h3>
+<h2>Data Kelas Siswa</h2>
 
-<form method="POST" action="kelola_kelas_siswa.php">
+<table class="table table-sm table-dark">
 
-    <?php if ($dataEdit): ?>
-        <input type="hidden" name="id" value="<?php echo h($dataEdit["id"]); ?>">
-    <?php endif; ?>
-
-    <p>Siswa:</p>
-    <select name="siswa_id" required>
-        <option value="">-- Pilih Siswa --</option>
-        <?php foreach ($siswa as $s): ?>
-            <option value="<?php echo h($s["id"]); ?>"
-                <?php echo (string)($dataEdit["siswa_id"] ?? "") === (string)$s["id"] ? "selected" : ""; ?>>
-                <?php echo h($s["nis"] . " - " . $s["nama"]); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-
-    <p>Tahun Ajaran:</p>
-    <select name="tahun_ajaran_id" required>
-        <option value="">-- Pilih Tahun Ajaran --</option>
-        <?php foreach ($tahun as $t): ?>
-            <option value="<?php echo h($t["id"]); ?>"
-                <?php echo (string)($dataEdit["tahun_ajaran_id"] ?? "") === (string)$t["id"] ? "selected" : ""; ?>>
-                <?php echo h($t["nama"]); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-
-    <p>Kelas:</p>
-    <select name="kelas_id" required>
-        <option value="">-- Pilih Kelas --</option>
-        <?php foreach ($kelas as $k): ?>
-            <option value="<?php echo h($k["id"]); ?>"
-                <?php echo (string)($dataEdit["kelas_id"] ?? "") === (string)$k["id"] ? "selected" : ""; ?>>
-                <?php echo h($k["nama"]); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-
-    <p>Tanggal Mulai:</p>
-    <input type="date" name="tanggal_mulai" required
-           value="<?php echo h($dataEdit["tanggal_mulai"] ?? date("Y-m-d")); ?>">
-
-    <p>Tanggal Selesai (boleh kosong):</p>
-    <input type="date" name="tanggal_selesai"
-           value="<?php echo h(($dataEdit["tanggal_selesai"] ?? "") === "0000-00-00" ? "" : ($dataEdit["tanggal_selesai"] ?? "")); ?>">
-
-    <p>Status:</p>
-    <select name="status_aktif" required>
-        <option value="1" <?php echo (string)($dataEdit["status_aktif"] ?? "1") === "1" ? "selected" : ""; ?>>Aktif</option>
-        <option value="0" <?php echo (string)($dataEdit["status_aktif"] ?? "") === "0" ? "selected" : ""; ?>>Tidak Aktif</option>
-    </select>
-
-    <p>
-        <?php if ($dataEdit): ?>
-            <button type="submit" name="edit">Simpan Perubahan</button>
-            <a href="kelola_kelas_siswa.php">Batal</a>
-        <?php else: ?>
-            <button type="submit" name="tambah">Tambah Penempatan</button>
-        <?php endif; ?>
-    </p>
-</form>
-
-<hr>
-
-<h3>Daftar Penempatan Siswa</h3>
-
-<table border="1" cellpadding="5" cellspacing="0">
     <tr>
-        <th>ID</th>
-        <th>Siswa</th>
-        <th>Tahun Ajaran</th>
-        <th>Kelas</th>
+        <th>No</th>
+        <th>Siswa ID</th>
+        <th>Tahun Ajaran ID</th>
+        <th>Kelas ID</th>
         <th>Tanggal Mulai</th>
         <th>Tanggal Selesai</th>
         <th>Status</th>
+        <th>Created At</th>
+        <th>Updated At</th>
         <th>Aksi</th>
     </tr>
 
-    <?php foreach ($data as $d): ?>
+    <?php
+
+    $no = 1;
+
+    while ($kelas = mysqli_fetch_assoc($hasil)) {
+
+    ?>
+
     <tr>
-        <td><?php echo h($d["id"]); ?></td>
-        <td><?php echo h($d["nama_siswa"] ?? "-"); ?></td>
-        <td><?php echo h($d["nama_tahun"] ?? "-"); ?></td>
-        <td><?php echo h($d["nama_kelas"] ?? "-"); ?></td>
-        <td><?php echo h($d["tanggal_mulai"]); ?></td>
-        <td><?php echo h($d["tanggal_selesai"] ?? "-"); ?></td>
-        <td><?php echo $d["status_aktif"] ? "Aktif" : "Tidak Aktif"; ?></td>
+
         <td>
-            <a href="kelola_kelas_siswa.php?edit=<?php echo h($d["id"]); ?>">Edit</a>
-            |
-            <a href="kelola_kelas_siswa.php?hapus=<?php echo h($d["id"]); ?>"
-               onclick="return confirm('Yakin menghapus penempatan ini?')">Hapus</a>
+            <?php echo $no++; ?>
         </td>
+
+        <td>
+            <?php echo $kelas['siswa_id']; ?>
+        </td>
+
+        <td>
+            <?php echo $kelas['tahun_ajaran_id']; ?>
+        </td>
+
+        <td>
+            <?php echo $kelas['kelas_id']; ?>
+        </td>
+
+        <td>
+            <?php echo $kelas['tanggal_mulai']; ?>
+        </td>
+
+        <td>
+            <?php echo $kelas['tanggal_selesai']; ?>
+        </td>
+
+        <td>
+
+            <?php
+
+            if ($kelas['status_aktif'] == 1) {
+                echo "Aktif";
+            } else {
+                echo "Tidak Aktif";
+            }
+
+            ?>
+
+        </td>
+
+        <td>
+            <?php echo $kelas['created_at']; ?>
+        </td>
+
+        <td>
+            <?php echo $kelas['updated_at']; ?>
+        </td>
+
+        <td>
+
+            <a href="edit_kelas.php?id=<?php echo $kelas['id']; ?>">
+                <button type="button" class="btn btn-warning">Edit</button>
+            </a>
+
+            |
+
+            <a
+                href="hapus_kelas.php?id=<?php echo $kelas['id']; ?>"
+                onclick="return confirm('Yakin ingin menghapus data kelas ini?')"
+            >
+                <button type="button" class="btn btn-danger">Hapus</button>
+            </a>
+
+        </td>
+
     </tr>
-    <?php endforeach; ?>
+
+    <?php
+
+    }
+
+    ?>
+
 </table>
 
 </body>
+
 </html>

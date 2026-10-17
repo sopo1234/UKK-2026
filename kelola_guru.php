@@ -1,139 +1,102 @@
-
 <?php
+
 session_start();
-require_once "config.php";
 
-// Hanya admin yang boleh mengakses
-if (!isset($_SESSION["role"]) ||
-    strtolower($_SESSION["role"]) !== "admin") {
-    exit("Akses ditolak. Silakan login sebagai Admin.");
+include 'config/koneksi.php';
+
+// CEK LOGIN
+if (!isset($_SESSION['login'])) {
+    header("Location: login.php");
+    exit;
 }
 
-$pesan = "";
-
-// Tambah guru
-if (isset($_POST["tambah"])) {
-    $nip = trim($_POST["nip"]);
-    $nama = trim($_POST["nama"]);
-    $email = trim($_POST["email"]);
-    $status = (int) $_POST["status_aktif"];
-    $user_id = (int) $_POST["user_id"];
-
-    try {
-        $sql = "INSERT INTO t_guru
-                (nip, nama, email, status_aktif, user_id,
-                 created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $nip, $nama, $email, $status, $user_id
-        ]);
-
-        header("Location: kelola_guru.php?pesan=tambah");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Gagal menambah guru. Periksa NIP, email, dan user ID.";
-    }
+// CEK ROLE
+if ($_SESSION['role'] != 'admin') {
+    echo "Akses ditolak!";
+    exit;
 }
 
-// Hapus guru
-if (isset($_GET["hapus"])) {
-    $id = (int) $_GET["hapus"];
+// AMBIL DATA GURU
+$sql = "SELECT
+            g.id,
+            g.nip,
+            g.nama,
+            g.email,
+            g.status_aktif,
+            g.created_at,
+            g.updated_at
+        FROM t_guru g
+        JOIN t_users u
+            ON g.user_id = u.id
+        WHERE u.role = 'guru'
+        ORDER BY g.id DESC";
 
-    try {
-        $stmt = $pdo->prepare(
-            "DELETE FROM t_guru WHERE id = ?"
-        );
-        $stmt->execute([$id]);
+$hasil = mysqli_query($koneksi, $sql);
 
-        header("Location: kelola_guru.php?pesan=hapus");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Data tidak dapat dihapus karena masih digunakan.";
-    }
+if (!$hasil) {
+    die("Gagal mengambil data guru: " . mysqli_error($koneksi));
 }
 
-// Pesan berhasil
-if (isset($_GET["pesan"])) {
-    if ($_GET["pesan"] === "tambah") {
-        $pesan = "Guru berhasil ditambahkan.";
-    } elseif ($_GET["pesan"] === "hapus") {
-        $pesan = "Guru berhasil dihapus.";
-    } elseif ($_GET["pesan"] === "edit") {
-        $pesan = "Data guru berhasil diperbarui.";
-    }
-}
-
-// Simpan edit guru
-if (isset($_POST["edit"])) {
-    $id = (int) $_POST["id"];
-    $nip = trim($_POST["nip"]);
-    $nama = trim($_POST["nama"]);
-    $email = trim($_POST["email"]);
-    $status = (int) $_POST["status_aktif"];
-    $user_id = (int) $_POST["user_id"];
-
-    try {
-        $stmt = $pdo->prepare(
-            "UPDATE t_guru
-             SET nip=?, nama=?, email=?, status_aktif=?,
-                 user_id=?, updated_at=NOW()
-             WHERE id=?"
-        );
-
-        $stmt->execute([
-            $nip, $nama, $email, $status, $user_id, $id
-        ]);
-
-        header("Location: kelola_guru.php?pesan=edit");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Gagal mengedit guru. Periksa data yang dimasukkan.";
-    }
-}
-
-// Ambil data untuk form edit
-$data_edit = null;
-
-if (isset($_GET["edit"])) {
-    $id = (int) $_GET["edit"];
-
-    $stmt = $pdo->prepare(
-        "SELECT * FROM t_guru WHERE id = ?"
-    );
-    $stmt->execute([$id]);
-    $data_edit = $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-// Ambil seluruh guru
-$stmt = $pdo->query(
-    "SELECT * FROM t_guru ORDER BY id DESC"
-);
-$guru = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-function h($nilai) {
-    return htmlspecialchars((string)$nilai, ENT_QUOTES, "UTF-8");
-}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset="UTF-8">
     <title>Kelola Guru</title>
+    <style>/* Sidebar tetap di kiri dan memenuhi tinggi layar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+/* Mengatur posisi konten utama */
+main {
+    margin-left: 16.666667%;
+}
+
+/* Untuk layar besar */
+@media (min-width: 992px) {
+    main {
+        margin-left: 16.666667%;
+    }
+}
+
+/* Untuk layar kecil */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    main {
+        margin-left: 0;
+    }
+}</style>
 </head>
+
 <body>
-    <div class="container-fluid">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+<div class="container-fluid">
     <div class="row">
         <!-- SIDEBAR -->
-        <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+        <div class="col-md-3 col-lg-2 bg-dark p-3 sidebar">
             <h4 class="text-white mb-4">
                 My Website
             </h4>
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link active">
+                    <a href="dashboard.php" class="nav-link text-white">
                         Dashboard
                     </a>
                 </li>
@@ -143,28 +106,44 @@ function h($nilai) {
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white">
+                    <a href="kelola_guru.php" class="nav-link active">
                         Data Guru
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white">
-                        Kelas
+                    <a href="Kelola_kelas.php" class="nav-link text-white">
+                        Data Kelas
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white">
-                        Laporan
+                    <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                        Data Tahun Ajaran
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white">
+                    <a href="kelola_walikelas.php" class="nav-link text-white">
+                        Kelola Walikelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="penempatan_siswa.php" class="nav-link text-white">
+                        Penempatan Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_pelanggaran_kategori.php" class="nav-link text-white">
+                        Pelanggaran Kategori
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="about_me.php" class="nav-link text-white">
                         About Me
                     </a>
                 </li>
+                
                 <hr class="text-secondary">
                 <li class="nav-item">
-                    <a href="#" class="nav-link text-danger">
+                    <a href="logout.php" class="nav-link text-danger">
                         Logout
                     </a>
                 </li>
@@ -173,105 +152,109 @@ function h($nilai) {
         <!-- KONTEN -->
         <main class="col-md-9 col-lg-10 p-4">
 
-<h2>KELOLA DATA GURU</h2>
+<h1>Kelola Guru</h1>
 
-<p><?php echo h($pesan); ?></p>
 
-<p>
-    <a href="dashboard (1).php">Kembali ke Dashboard</a>
-</p>
+<a href="dashboard.php">
+    Kembali ke Dashboard
+</a>
 
-<hr>
+<br><br>
 
-<h3><?php echo $data_edit ? "Edit Guru" : "Tambah Guru"; ?></h3>
-
-<form method="POST" action="kelola_guru.php">
-
-    <?php if ($data_edit): ?>
-        <input type="hidden" name="id"
-               value="<?php echo h($data_edit["id"]); ?>">
-    <?php endif; ?>
-
-    <p>NIP:</p>
-    <input type="text" name="nip" required
-           value="<?php echo h($data_edit["nip"] ?? ""); ?>">
-
-    <p>Nama Guru:</p>
-    <input type="text" name="nama" required
-           value="<?php echo h($data_edit["nama"] ?? ""); ?>">
-
-    <p>Email:</p>
-    <input type="email" name="email" required
-           value="<?php echo h($data_edit["email"] ?? ""); ?>">
-
-    <p>Status Aktif:</p>
-    <select name="status_aktif">
-        <option value="1"
-            <?php echo isset($data_edit["status_aktif"]) &&
-                $data_edit["status_aktif"] == 1
-                ? "selected" : ""; ?>>
-            Aktif
-        </option>
-        <option value="0"
-            <?php echo isset($data_edit["status_aktif"]) &&
-                $data_edit["status_aktif"] == 0
-                ? "selected" : ""; ?>>
-            Tidak Aktif
-        </option>
-    </select>
-
-    <p>User ID:</p>
-    <input type="number" name="user_id" min="1" required
-           value="<?php echo h($data_edit["user_id"] ?? ""); ?>">
-
-    <br><br>
-
-    <?php if ($data_edit): ?>
-        <button type="submit" name="edit">Simpan Perubahan</button>
-        <a href="kelola_guru.php">Batal</a>
-    <?php else: ?>
-        <button type="submit" name="tambah">Tambah Guru</button>
-    <?php endif; ?>
-
-</form>
+<a href="tambah_guru.php">
+    Tambah Guru
+</a>
 
 <hr>
 
-<h3>Daftar Guru</h3>
+<h2>Data Guru</h2>
 
-<table border="1" cellpadding="5" cellspacing="0">
+<table class="table table-sm table-dark">
+
     <tr>
-        <th>ID</th>
+        <th>No</th>
         <th>NIP</th>
         <th>Nama</th>
         <th>Email</th>
         <th>Status</th>
-        <th>User ID</th>
+        <th>Created At</th>
+        <th>Updated At</th>
         <th>Aksi</th>
     </tr>
 
-    <?php foreach ($guru as $g): ?>
+    <?php
+
+    $no = 1;
+
+    while ($guru = mysqli_fetch_assoc($hasil)) {
+
+    ?>
+
     <tr>
-        <td><?php echo h($g["id"]); ?></td>
-        <td><?php echo h($g["nip"]); ?></td>
-        <td><?php echo h($g["nama"]); ?></td>
-        <td><?php echo h($g["email"]); ?></td>
+
         <td>
-            <?php echo $g["status_aktif"] ? "Aktif" : "Tidak Aktif"; ?>
+            <?php echo $no++; ?>
         </td>
-        <td><?php echo h($g["user_id"]); ?></td>
+
         <td>
-            <a href="kelola_guru.php?edit=<?php echo h($g["id"]); ?>">
-                Edit
+            <?php echo $guru['nip']; ?>
+        </td>
+
+        <td>
+            <?php echo $guru['nama']; ?>
+        </td>
+
+        <td>
+            <?php echo $guru['email']; ?>
+        </td>
+
+        <td>
+
+            <?php
+
+            if ($guru['status_aktif'] == 1) {
+                echo "Aktif";
+            } else {
+                echo "Tidak Aktif";
+            }
+
+            ?>
+
+        </td>
+
+        <td>
+            <?php echo $guru['created_at']; ?>
+        </td>
+
+        <td>
+            <?php echo $guru['updated_at']; ?>
+        </td>
+
+        <td>
+
+            <a href="edit_guru.php?id=<?php echo $guru['id']; ?>">
+                <button type="button" class="btn btn-warning">Edit</button>
             </a>
+
             |
-            <a href="kelola_guru.php?hapus=<?php echo h($g["id"]); ?>"
-               onclick="return confirm('Yakin ingin menghapus guru ini?')">
-                Hapus
+
+            <a
+                href="hapus_guru.php?id=<?php echo $guru['id']; ?>"
+                onclick="return confirm('Yakin ingin menghapus guru ini?')"
+            >
+                <button type="button" class="btn btn-danger">Hapus</button>
             </a>
+
         </td>
+
     </tr>
-    <?php endforeach; ?>
+
+    <?php
+
+    }
+
+    ?>
+
 </table>
 
 </body>

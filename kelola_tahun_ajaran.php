@@ -1,222 +1,186 @@
-
 <?php
+
 session_start();
-require_once "config.php";
+include 'config/koneksi.php';
 
-if (
-    !isset($_SESSION["role"]) ||
-    strtolower($_SESSION["role"]) !== "admin"
-) {
-    exit("Akses ditolak. Login sebagai Admin terlebih dahulu.");
+if (!isset($_SESSION['login'])) {
+    header("Location: login.php");
+    exit;
 }
 
-function h($nilai) {
-    return htmlspecialchars((string)$nilai, ENT_QUOTES, "UTF-8");
+if ($_SESSION['role'] != 'admin') {
+    die("Akses ditolak!");
 }
 
-$pesan = "";
+$sql = "SELECT * FROM t_tahun_ajaran ORDER BY id DESC";
+$hasil = mysqli_query($koneksi, $sql);
 
-// Tambah tahun ajaran
-if (isset($_POST["tambah"])) {
-    $nama = trim($_POST["nama"]);
-    $mulai = $_POST["tanggal_mulai"];
-    $selesai = $_POST["tanggal_selesai"];
-    $status = (int)$_POST["status_aktif"];
-
-    if ($mulai > $selesai) {
-        $pesan = "Tanggal mulai tidak boleh setelah tanggal selesai.";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "INSERT INTO t_tahun_ajaran
-                (nama, tanggal_mulai, tanggal_selesai,
-                 status_aktif, created_at, updated_at)
-                VALUES (?, ?, ?, ?, NOW(), NOW())"
-            );
-
-            $stmt->execute([
-                $nama, $mulai, $selesai, $status
-            ]);
-
-            header("Location: kelola_tahun_ajaran.php?pesan=tambah");
-            exit;
-        } catch (PDOException $e) {
-            $pesan = "Gagal menambahkan tahun ajaran.";
-        }
-    }
+if (!$hasil) {
+    die("Gagal mengambil data: " . mysqli_error($koneksi));
 }
 
-// Edit tahun ajaran
-if (isset($_POST["edit"])) {
-    $id = (int)$_POST["id"];
-    $nama = trim($_POST["nama"]);
-    $mulai = $_POST["tanggal_mulai"];
-    $selesai = $_POST["tanggal_selesai"];
-    $status = (int)$_POST["status_aktif"];
-
-    if ($mulai > $selesai) {
-        $pesan = "Tanggal mulai tidak boleh setelah tanggal selesai.";
-    } else {
-        try {
-            $stmt = $pdo->prepare(
-                "UPDATE t_tahun_ajaran
-                 SET nama = ?, tanggal_mulai = ?,
-                     tanggal_selesai = ?, status_aktif = ?,
-                     updated_at = NOW()
-                 WHERE id = ?"
-            );
-
-            $stmt->execute([
-                $nama, $mulai, $selesai, $status, $id
-            ]);
-
-            header("Location: kelola_tahun_ajaran.php?pesan=edit");
-            exit;
-        } catch (PDOException $e) {
-            $pesan = "Gagal mengubah tahun ajaran.";
-        }
-    }
-}
-
-// Hapus tahun ajaran
-if (isset($_GET["hapus"])) {
-    $id = (int)$_GET["hapus"];
-
-    try {
-        $stmt = $pdo->prepare(
-            "DELETE FROM t_tahun_ajaran WHERE id = ?"
-        );
-        $stmt->execute([$id]);
-
-        header("Location: kelola_tahun_ajaran.php?pesan=hapus");
-        exit;
-    } catch (PDOException $e) {
-        $pesan = "Tahun ajaran tidak dapat dihapus karena masih digunakan.";
-    }
-}
-
-// Pesan
-if (isset($_GET["pesan"])) {
-    if ($_GET["pesan"] === "tambah") {
-        $pesan = "Tahun ajaran berhasil ditambahkan.";
-    } elseif ($_GET["pesan"] === "edit") {
-        $pesan = "Tahun ajaran berhasil diubah.";
-    } elseif ($_GET["pesan"] === "hapus") {
-        $pesan = "Tahun ajaran berhasil dihapus.";
-    }
-}
-
-// Data untuk form edit
-$dataEdit = null;
-
-if (isset($_GET["edit"])) {
-    $stmt = $pdo->prepare(
-        "SELECT * FROM t_tahun_ajaran WHERE id = ?"
-    );
-    $stmt->execute([(int)$_GET["edit"]]);
-    $dataEdit = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$dataEdit) {
-        $pesan = "Data tahun ajaran tidak ditemukan.";
-    }
-}
-
-// Daftar tahun ajaran
-$stmt = $pdo->query(
-    "SELECT * FROM t_tahun_ajaran ORDER BY id DESC"
-);
-$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset="UTF-8">
     <title>Kelola Tahun Ajaran</title>
+    <style>/* Sidebar tetap di kiri dan memenuhi tinggi layar */
+    /* Sidebar tetap di kiri dan memenuhi tinggi layar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+/* Mengatur posisi konten utama */
+main {
+    margin-left: 16.666667%;
+}
+
+/* Untuk layar besar */
+@media (min-width: 992px) {
+    main {
+        margin-left: 16.666667%;
+    }
+}
+
+/* Untuk layar kecil */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    main {
+        margin-left: 0;
+    }
+}</style>
 </head>
 <body>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
-<h2>KELOLA TAHUN AJARAN</h2>
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+        <div class="col-md-3 col-lg-2 bg-dark p-3 sidebar">
+            <h4 class="text-white mb-4">
+                My Website
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link text-white">
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_siswa.php" class="nav-link text-white">
+                        Data Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_guru.php" class="nav-link text-white">
+                        Data Guru
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="Kelola_kelas.php" class="nav-link text-white">
+                        Data Kelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_tahun_ajaran.php" class="nav-link active">
+                        Data Tahun Ajaran
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_walikelas.php" class="nav-link text-white">
+                        Kelola Walikelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="penempatan_siswa.php" class="nav-link text-white">
+                        Penempatan Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_pelanggaran_kategori.php" class="nav-link text-white">
+                        Pelanggaran Kategori
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="about_me.php" class="nav-link text-white">
+                        About Me
+                    </a>
+                </li>
+                
+                <hr class="text-secondary">
+                <li class="nav-item">
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- KONTEN -->
+        <main class="col-md-9 col-lg-10 p-4">
 
-<p><?php echo h($pesan); ?></p>
+<h1>Kelola Tahun Ajaran</h1>
 
-<p><a href="dashboard (1).php">Kembali ke Dashboard</a></p>
+<a href="dashboard.php">Kembali ke Dashboard</a>
+<br><br>
+<a href="tambah_tahun_ajaran.php">Tambah Tahun Ajaran</a>
 
 <hr>
 
-<h3><?php echo $dataEdit ? "Edit Tahun Ajaran" : "Tambah Tahun Ajaran"; ?></h3>
-
-<form method="POST" action="kelola_tahun_ajaran.php">
-
-    <?php if ($dataEdit): ?>
-        <input type="hidden" name="id"
-               value="<?php echo h($dataEdit["id"]); ?>">
-    <?php endif; ?>
-
-    <p>Nama Tahun Ajaran:</p>
-    <input type="text" name="nama" required
-           placeholder="Contoh: 2026/2027"
-           value="<?php echo h($dataEdit["nama"] ?? ""); ?>">
-
-    <p>Tanggal Mulai:</p>
-    <input type="date" name="tanggal_mulai" required
-           value="<?php echo h($dataEdit["tanggal_mulai"] ?? ""); ?>">
-
-    <p>Tanggal Selesai:</p>
-    <input type="date" name="tanggal_selesai" required
-           value="<?php echo h($dataEdit["tanggal_selesai"] ?? ""); ?>">
-
-    <p>Status:</p>
-    <select name="status_aktif" required>
-        <option value="1"
-            <?php echo (string)($dataEdit["status_aktif"] ?? "1") === "1"
-                ? "selected" : ""; ?>>Aktif</option>
-        <option value="0"
-            <?php echo (string)($dataEdit["status_aktif"] ?? "") === "0"
-                ? "selected" : ""; ?>>Tidak Aktif</option>
-    </select>
-
-    <p>
-        <?php if ($dataEdit): ?>
-            <button type="submit" name="edit">Simpan Perubahan</button>
-            <a href="kelola_tahun_ajaran.php">Batal</a>
-        <?php else: ?>
-            <button type="submit" name="tambah">Tambah Tahun Ajaran</button>
-        <?php endif; ?>
-    </p>
-</form>
-
-<hr>
-
-<h3>Daftar Tahun Ajaran</h3>
-
-<table border="1" cellpadding="5" cellspacing="0">
+<table border="1" cellpadding="8" cellspacing="0">
     <tr>
-        <th>ID</th>
-        <th>Nama</th>
+        <th>No</th>
+        <th>Nama Tahun Ajaran</th>
         <th>Tanggal Mulai</th>
         <th>Tanggal Selesai</th>
         <th>Status</th>
+        <th>Created At</th>
+        <th>Updated At</th>
         <th>Aksi</th>
     </tr>
 
-    <?php foreach ($data as $row): ?>
+    <?php
+    $no = 1;
+
+    while ($data = mysqli_fetch_assoc($hasil)) {
+    ?>
     <tr>
-        <td><?php echo h($row["id"]); ?></td>
-        <td><?php echo h($row["nama"]); ?></td>
-        <td><?php echo h($row["tanggal_mulai"]); ?></td>
-        <td><?php echo h($row["tanggal_selesai"]); ?></td>
-        <td><?php echo $row["status_aktif"] ? "Aktif" : "Tidak Aktif"; ?></td>
+        <td><?php echo $no++; ?></td>
+        <td><?php echo htmlspecialchars($data['nama']); ?></td>
+        <td><?php echo $data['tanggal_mulai']; ?></td>
+        <td><?php echo $data['tanggal_selesai']; ?></td>
         <td>
-            <a href="kelola_tahun_ajaran.php?edit=<?php echo h($row["id"]); ?>">Edit</a>
+            <?php echo $data['status_aktif'] == 1 ? 'Aktif' : 'Tidak Aktif'; ?>
+        </td>
+        <td><?php echo $data['created_at']; ?></td>
+        <td><?php echo $data['updated_at']; ?></td>
+        <td>
+            <a href="edit_tahun_ajaran.php?id=<?php echo $data['id']; ?>">
+                Edit
+            </a>
             |
-            <a href="kelola_tahun_ajaran.php?hapus=<?php echo h($row["id"]); ?>"
+            <a href="hapus_tahun_ajaran.php?id=<?php echo $data['id']; ?>"
                onclick="return confirm('Yakin ingin menghapus tahun ajaran ini?')">
                 Hapus
             </a>
         </td>
     </tr>
-    <?php endforeach; ?>
+    <?php } ?>
 </table>
 
 </body>

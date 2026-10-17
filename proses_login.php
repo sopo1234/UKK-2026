@@ -1,63 +1,61 @@
-```php
 <?php
 session_start();
+include 'config/koneksi.php';
 
-require_once __DIR__ . "/config.php";
-
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+// Pastikan form mengirim email dan password
+if (!isset($_POST['email'], $_POST['password'])) {
     header("Location: login.php");
     exit;
 }
 
-$email = trim($_POST["email"] ?? "");
-$password = $_POST["password"] ?? "";
+$email = mysqli_real_escape_string($koneksi, $_POST['email']);
+$password = $_POST['password'];
 
-if ($email === "" || $password === "") {
-    exit("Email dan password wajib diisi.");
+// Cari akun berdasarkan email
+$sql = "SELECT * FROM t_users WHERE email = '$email' LIMIT 1";
+$hasil = mysqli_query($koneksi, $sql);
+
+if (!$hasil) {
+    die("Query login gagal: " . mysqli_error($koneksi));
 }
 
-$stmt = $conn->prepare(
-    "SELECT id, name, email, password, role
-     FROM t_user
-     WHERE email = ?
-     LIMIT 1"
-);
+// Periksa akun
+if (mysqli_num_rows($hasil) == 1) {
 
-if (!$stmt) {
-    exit("Gagal menyiapkan query login.");
+    $data = mysqli_fetch_assoc($hasil);
+
+    // Periksa password
+    if (password_verify($password, $data['password'])) {
+
+        // Pastikan kolom ID tersedia
+        if (!isset($data['id']) || (int)$data['id'] <= 0) {
+            die("Kolom id pada t_users tidak ditemukan atau tidak valid.");
+        }
+
+        // Buat session baru
+        session_regenerate_id(true);
+
+        $_SESSION['login'] = true;
+        $_SESSION['id_user'] = (int)$data['id'];
+        $_SESSION['name'] = $data['name'];
+        $_SESSION['email'] = $data['email'];
+        $_SESSION['role'] = $data['role'];
+
+        // Pastikan session berhasil tersimpan
+        session_write_close();
+
+        header("Location: dashboard.php");
+        exit;
+
+    } else {
+        $_SESSION['pesan_error'] = 'Password salah!';
+        header("Location: login.php");
+        exit;
+    }
+
+} else {
+    $_SESSION['pesan_error'] = 'Email tidak ditemukan!';
+    header("Location: login.php");
+    exit;
 }
-
-$stmt->bind_param("s", $email);
-$stmt->execute();
-
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
-
-$stmt->close();
-
-if (!$user) {
-    exit("Email tidak ditemukan.");
-}
-
-/*
- * Mendukung password yang disimpan menggunakan
- * password_hash() maupun password teks biasa.
- */
-$passwordBenar = password_verify($password, $user["password"])
-    || hash_equals((string) $user["password"], $password);
-
-if (!$passwordBenar) {
-    exit("Password salah.");
-}
-
-session_regenerate_id(true);
-
-$_SESSION["id_user"] = $user["id"];
-$_SESSION["name"] = $user["name"];
-$_SESSION["email"] = $user["email"];
-$_SESSION["role"] = strtolower(trim($user["role"]));
-
-header("Location: dashboard.php");
-exit;
 ?>
-```
