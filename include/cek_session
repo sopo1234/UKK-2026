@@ -1,0 +1,20 @@
+<?php
+// includes/cek_session.php
+// Dipakai oleh halaman yang wajib login (dashboard, penempatan siswa,
+// halaman guru, dan lain-lain).
+
+// Mulai session hanya jika belum dimulai
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Cegah halaman tersimpan di cache browser.
+// Dengan begitu, tombol Back setelah logout tidak menampilkan halaman lama.
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+
+// Jika belum login, kembali ke halaman login
+if (!isset($_SESSION['login']) || $_SESSION['login'] !== true) {
+    header("Location: login.php");
+    exit;
+}

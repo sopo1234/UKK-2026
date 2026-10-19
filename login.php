@@ -1,74 +1,133 @@
 <?php
-
 session_start();
-
 include 'config/koneksi.php';
-
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Pelanggaran Siswa</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            width: 263px;
+            padding: 15px 25px 34px;
+            background-color: #6bb9cc;
+            border-radius: 7px;
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 55px;
+            line-height: 65px;
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 9px;
+            margin: 0 0 8px 2px;
+            color: #000;
+        }
+
+        input {
+            width: 100%;
+            height: 38px;
+            border: none;
+            border-radius: 8px;
+            padding: 0 14px;
+            margin-bottom: 15px;
+            background-color: white;
+            outline: none;
+            font-size: 12px;
+        }
+
+        button {
+            width: 100%;
+            height: 38px;
+            margin-top: 9px;
+            border: none;
+            border-radius: 8px;
+            background-color: #164e6b;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #103d55;
+        }
+
+        .pesan-error {
+            color: #8b0000;
+            background-color: white;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+    </style>
 </head>
 
 <body>
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
-    <h1>Login Pelanggaran Siswa</h1>
+    <div class="login-box">
 
-    <?php
-    if (isset($_SESSION['pesan_error'])) {
-        echo "<p>" . $_SESSION['pesan_error'] . "</p>";
-        unset($_SESSION['pesan_error']);
-    }
-    ?>
-<form action="proses_login.php" method="POST">
-  <div class="form-group">
-    <label for="exampleInputEmail1">Email address</label>
-    <input type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
-  </div>
-  <div class="form-group">
-    <label for="exampleInputPassword1">Password</label>
-    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
-  </div>
-  <button type="submit" class="btn btn-primary">Submit</button>
-</form>
-    <!-- <form action="proses_login.php" method="POST">
+        <div class="logo">⚖</div>
 
-        <table>
+        <?php
+        if (isset($_SESSION['pesan_error'])) {
+            echo '<p class="pesan-error">' .
+                htmlspecialchars($_SESSION['pesan_error'], ENT_QUOTES, 'UTF-8') .
+                '</p>';
 
-            <tr>
-                <td>Email</td>
-                <td>:</td>
-                <td>
-                    <input type="email" name="email" required>
-                </td>
-            </tr>
+            unset($_SESSION['pesan_error']);
+        }
+        ?>
 
-            <tr>
-                <td>Password</td>
-                <td>:</td>
-                <td>
-                    <input type="password" name="password" required>
-                </td>
-            </tr>
+        <form action="proses_login.php" method="POST">
 
-            <tr>
-                <td colspan="3">
-                    <input type="submit" name="login" value="Login">
-                </td>
-            </tr>
+            <label for="email">username</label>
+            <input
+                type="text"
+                name="email"
+                id="email"
+                placeholder="Masukkan username"
+                required
+                autocomplete="username"
+            >
 
-        </table>
+            <label for="password">password</label>
+            <input
+                type="password"
+                name="password"
+                id="password"
+                placeholder="Masukkan password"
+                required
+                autocomplete="current-password"
+            >
 
-    </form> -->
+            <button type="submit">LOGIN</button>
+
+        </form>
+
+    </div>
 
 </body>
-
 </html>

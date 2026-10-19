@@ -1,5 +1,5 @@
+```php
 <?php
-
 session_start();
 include 'config/koneksi.php';
 
@@ -18,170 +18,137 @@ $hasil = mysqli_query($koneksi, $sql);
 if (!$hasil) {
     die("Gagal mengambil data: " . mysqli_error($koneksi));
 }
-
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset="UTF-8">
     <title>Kelola Tahun Ajaran</title>
-    <style>/* Sidebar tetap di kiri dan memenuhi tinggi layar */
-    /* Sidebar tetap di kiri dan memenuhi tinggi layar */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 1000;
-}
 
-/* Mengatur posisi konten utama */
-main {
-    margin-left: 16.666667%;
-}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
 
-/* Untuk layar besar */
-@media (min-width: 992px) {
-    main {
-        margin-left: 16.666667%;
-    }
-}
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
 
-/* Untuk layar kecil */
-@media (max-width: 767.98px) {
-    .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-    }
+        main {
+            margin-left: 16.666667%;
+        }
 
-    main {
-        margin-left: 0;
-    }
-}</style>
+        @media (max-width: 767.98px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
+
+            main {
+                margin-left: 0;
+            }
+        }
+    </style>
 </head>
-<body>
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
+<body>
 <div class="container-fluid">
     <div class="row">
+
         <!-- SIDEBAR -->
-        <div class="col-md-3 col-lg-2 bg-dark p-3 sidebar">
-            <h4 class="text-white mb-4">
-                My Website
-            </h4>
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link text-white">
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="kelola_siswa.php" class="nav-link text-white">
-                        Data Siswa
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="kelola_guru.php" class="nav-link text-white">
-                        Data Guru
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="Kelola_kelas.php" class="nav-link text-white">
-                        Data Kelas
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="kelola_tahun_ajaran.php" class="nav-link active">
-                        Data Tahun Ajaran
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="kelola_walikelas.php" class="nav-link text-white">
-                        Kelola Walikelas
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="penempatan_siswa.php" class="nav-link text-white">
-                        Penempatan Siswa
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="kelola_pelanggaran_kategori.php" class="nav-link text-white">
-                        Pelanggaran Kategori
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="about_me.php" class="nav-link text-white">
-                        About Me
-                    </a>
-                </li>
-                
-                <hr class="text-secondary">
-                <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">
-                        Logout
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <?php include 'layout/sidebar.php'; ?>
+
         <!-- KONTEN -->
         <main class="col-md-9 col-lg-10 p-4">
+            <h1>Kelola Tahun Ajaran</h1>
 
-<h1>Kelola Tahun Ajaran</h1>
+            <a href="dashboard.php">Kembali ke Dashboard</a>
+            <br><br>
 
-<a href="dashboard.php">Kembali ke Dashboard</a>
-<br><br>
-<a href="tambah_tahun_ajaran.php">Tambah Tahun Ajaran</a>
+            <a href="tambah_tahun_ajaran.php">Tambah Tahun Ajaran</a>
+            <hr>
 
-<hr>
+            <table id="tabelTahunAjaran" class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Tahun Ajaran</th>
+                        <th>Tanggal Mulai</th>
+                        <th>Tanggal Selesai</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
 
-<table border="1" cellpadding="8" cellspacing="0">
-    <tr>
-        <th>No</th>
-        <th>Nama Tahun Ajaran</th>
-        <th>Tanggal Mulai</th>
-        <th>Tanggal Selesai</th>
-        <th>Status</th>
-        <th>Created At</th>
-        <th>Updated At</th>
-        <th>Aksi</th>
-    </tr>
+                <tbody>
+                    <?php
+                    $no = 1;
+                    while ($data = mysqli_fetch_assoc($hasil)) {
+                    ?>
+                    <tr>
+                        <td><?php echo $no++; ?></td>
+                        <td><?php echo htmlspecialchars($data['nama'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($data['tanggal_mulai'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($data['tanggal_selesai'] ?? '-'); ?></td>
+                        <td>
+                            <?php echo ($data['status_aktif'] ?? 0) == 1
+                                ? 'Aktif' : 'Tidak Aktif'; ?>
+                        </td>
+                        <td><?php echo htmlspecialchars($data['created_at'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($data['updated_at'] ?? '-'); ?></td>
+                        <td>
+                            <a href="edit_tahun_ajaran.php?id=<?php echo (int)$data['id']; ?>">Edit</a>
+                            |
+                            <a href="hapus_tahun_ajaran.php?id=<?php echo (int)$data['id']; ?>"
+                               onclick="return confirm('Yakin ingin menghapus tahun ajaran ini?')">
+                                Hapus
+                            </a>
+                        </td>
+                    </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </main>
 
-    <?php
-    $no = 1;
+    </div>
+</div>
 
-    while ($data = mysqli_fetch_assoc($hasil)) {
-    ?>
-    <tr>
-        <td><?php echo $no++; ?></td>
-        <td><?php echo htmlspecialchars($data['nama']); ?></td>
-        <td><?php echo $data['tanggal_mulai']; ?></td>
-        <td><?php echo $data['tanggal_selesai']; ?></td>
-        <td>
-            <?php echo $data['status_aktif'] == 1 ? 'Aktif' : 'Tidak Aktif'; ?>
-        </td>
-        <td><?php echo $data['created_at']; ?></td>
-        <td><?php echo $data['updated_at']; ?></td>
-        <td>
-            <a href="edit_tahun_ajaran.php?id=<?php echo $data['id']; ?>">
-                Edit
-            </a>
-            |
-            <a href="hapus_tahun_ajaran.php?id=<?php echo $data['id']; ?>"
-               onclick="return confirm('Yakin ingin menghapus tahun ajaran ini?')">
-                Hapus
-            </a>
-        </td>
-    </tr>
-    <?php } ?>
-</table>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+<script>
+$(document).ready(function () {
+    $('#tabelTahunAjaran').DataTable({
+        language: {
+            search: "Cari:",
+            lengthMenu: "Tampilkan _MENU_ data",
+            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+            infoEmpty: "Tidak ada data",
+            zeroRecords: "Data tidak ditemukan",
+            emptyTable: "Belum ada data tahun ajaran",
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "Selanjutnya",
+                previous: "Sebelumnya"
+            }
+        },
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50, 100],
+        order: []
+    });
+});
+</script>
 
 </body>
 </html>
+```
