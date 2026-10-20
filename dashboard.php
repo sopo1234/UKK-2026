@@ -1,59 +1,27 @@
-
 <?php
 session_start();
-require_once 'config/koneksi.php';
 
-// Periksa sesi login
 if (!isset($_SESSION['login'])) {
     header("Location: login.php");
     exit;
 }
 
-// Ambil role
 $role = strtolower((string)($_SESSION['role'] ?? ''));
 
 if (!in_array($role, ['admin', 'guru'], true)) {
-    exit("Akses ditolak. Silakan login kembali.");
+    exit("Akses ditolak!");
 }
 
-// Nama pengguna dengan fallback agar tidak muncul warning
-$namaPengguna = $_SESSION['nama_user']
-    ?? $_SESSION['username']
+$username = $_SESSION['username']
+    ?? $_SESSION['nama_user']
+    ?? $_SESSION['name']
     ?? 'Pengguna';
 
-$namaPengguna = htmlspecialchars(
-    (string)$namaPengguna,
+$username = htmlspecialchars(
+    (string)$username,
     ENT_QUOTES,
     'UTF-8'
 );
-
-// Hitung jumlah data dengan aman
-function hitungData($koneksi, $tabel) {
-    $daftarTabel = ['t_siswa', 't_guru', 't_kelas'];
-
-    if (!in_array($tabel, $daftarTabel, true)) {
-        return 0;
-    }
-
-    $hasil = mysqli_query(
-        $koneksi,
-        "SELECT COUNT(*) AS total FROM `$tabel`"
-    );
-
-    if (!$hasil) {
-        return 0;
-    }
-
-    $data = mysqli_fetch_assoc($hasil);
-
-    return (int)($data['total'] ?? 0);
-}
-
-$totalSiswa = hitungData($koneksi, 't_siswa');
-$totalGuru  = hitungData($koneksi, 't_guru');
-$totalKelas = hitungData($koneksi, 't_kelas');
-
-$activeMenu = 'dashboard';
 ?>
 
 <!DOCTYPE html>
@@ -65,113 +33,121 @@ $activeMenu = 'dashboard';
 
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-            background: #f5f7f9;
-        }
-
-        /* Konten dimulai tepat di sebelah kanan sidebar */
-        .app-main {
-            display: block;
-            width: auto;
-            min-width: 0;
-            min-height: 100vh;
-            margin-left: 284px;
-            padding: 30px;
-        }
-
-        .dashboard-header {
-            margin-bottom: 25px;
-        }
-
-        .dashboard-header h2 {
-            margin: 0 0 10px;
-            color: #263746;
-        }
-
-        .dashboard-header p {
-            margin-bottom: 0;
-            color: #596773;
-        }
-
-        .dashboard-card {
-            min-height: 125px;
-            padding: 24px;
-            border: 0;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .card-siswa {
-            background: #d7edf2;
-        }
-
-        .card-guru {
-            background: #d1e8ef;
-        }
-
-        .card-kelas {
-            background: #bfdeea;
-        }
-
-        .dashboard-card h5 {
-            margin-bottom: 8px;
-            color: #263746;
-        }
-
-        .dashboard-card .angka {
-            font-size: 30px;
-            font-weight: bold;
-            color: #164e6b;
-            margin: 0;
-        }
-
-        .info-box {
-            background: #ffffff;
-            padding: 22px;
-            margin-top: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        }
-
-        @media (max-width: 767.98px) {
-            .app-main {
-                width: 100%;
-                margin-left: 0;
-                padding: 18px 12px;
-            }
-
-            .dashboard-card {
-                margin-bottom: 5px;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
-    <!-- SIDEBAR BERSAMA -->
-    <?php require_once __DIR__ . '/layout/sidebar.php'; ?>
+<div class="container-fluid">
+    <div class="row">
 
-    <!-- KONTEN DASHBOARD -->
-    <main class="app-main">
+        <!-- SIDEBAR -->
+        <aside class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+            <h4 class="text-white mb-4">
+                Pelanggaran Siswa
+            </h4>
 
-        <div class="dashboard-header">
+            <ul class="nav nav-pills flex-column">
+
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link active">
+                        Dashboard
+                    </a>
+                </li>
+
+                <?php if ($role === 'admin') { ?>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_siswa.php" class="nav-link text-white">
+                            Data Siswa
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_guru.php" class="nav-link text-white">
+                            Data Guru
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_kelas.php" class="nav-link text-white">
+                            Data Kelas
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                            Data Tahun Ajaran
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_walikelas.php" class="nav-link text-white">
+                            Data Wali Kelas
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="penempatan_siswa.php" class="nav-link text-white">
+                            Penempatan Siswa
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_pelanggaran_kategori.php"
+                           class="nav-link text-white">
+                            Kategori Pelanggaran
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="kelola_pelanggaran.php"
+                           class="nav-link text-white">
+                            Data Pelanggaran
+                        </a>
+                    </li>
+
+                <?php } else { ?>
+
+                    <li class="nav-item mb-2">
+                        <a href="catatan_pelanggaran.php"
+                           class="nav-link text-white">
+                            Catat Pelanggaran
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a href="rekap_poin.php" class="nav-link text-white">
+                            Rekap Poin
+                        </a>
+                    </li>
+
+                <?php } ?>
+
+                <li class="nav-item mb-2">
+                    <a href="about_me.php" class="nav-link text-white">
+                        About Me
+                    </a>
+                </li>
+
+                <hr class="bg-secondary">
+
+                <li class="nav-item">
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+
+            </ul>
+        </aside>
+
+        <!-- KONTEN UTAMA -->
+        <main class="col-md-9 col-lg-10 p-4">
+
             <h2>Dashboard</h2>
 
             <p>
                 Selamat datang,
-                <strong><?= $namaPengguna; ?></strong>.
+                <strong><?= $username; ?></strong>.
             </p>
 
             <p>
@@ -182,60 +158,54 @@ $activeMenu = 'dashboard';
                     'UTF-8'
                 ); ?></strong>
             </p>
-        </div>
 
-        <!-- KARTU RINGKASAN -->
-        <div class="row">
+            <hr>
 
-            <div class="col-md-4 mb-4">
-                <div class="card dashboard-card card-siswa">
-                    <h5>Data Siswa</h5>
-                    <p class="angka"><?= $totalSiswa; ?></p>
+            <!-- KARTU DATA -->
+            <div class="row">
+
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Data Siswa</h5>
+                            <h2>120</h2>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Data Guru</h5>
+                            <h2>25</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Kelas</h5>
+                            <h2>12</h2>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <div class="col-md-4 mb-4">
-                <div class="card dashboard-card card-guru">
-                    <h5>Data Guru</h5>
-                    <p class="angka"><?= $totalGuru; ?></p>
-                </div>
-            </div>
+            <hr>
 
-            <div class="col-md-4 mb-4">
-                <div class="card dashboard-card card-kelas">
-                    <h5>Data Kelas</h5>
-                    <p class="angka"><?= $totalKelas; ?></p>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- INFORMASI -->
-        <div class="info-box">
             <h4>Dashboard Pelanggaran Siswa</h4>
 
             <p>
-                Gunakan menu di sebelah kiri untuk mengakses
-                pengelolaan data sesuai hak akses akun.
+                Selamat datang di sistem informasi pelanggaran siswa.
+                Silakan pilih menu di sebelah kiri untuk melanjutkan.
             </p>
 
-            <?php if ($role === 'admin') { ?>
-                <a href="kelola_siswa.php" class="btn btn-primary">
-                    Kelola Data Siswa
-                </a>
+        </main>
 
-                <a href="kelola_pelanggaran.php"
-                   class="btn btn-info text-white">
-                    Data Pelanggaran
-                </a>
-            <?php } else { ?>
-                <a href="catatan_pelanggaran.php" class="btn btn-primary">
-                    Catat Pelanggaran
-                </a>
-            <?php } ?>
-        </div>
-
-    </main>
+    </div>
+</div>
 
 </body>
 </html>

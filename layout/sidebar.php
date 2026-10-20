@@ -1,12 +1,19 @@
-```php
 <?php
-$current_page = basename($_SERVER['PHP_SELF']);
-$role = strtolower((string)($_SESSION['role'] ?? ''));
-
-if (!defined('BASE_URL')) {
-    define('BASE_URL', '/UKK-2026/UKK-2026');
+// Pastikan session aktif
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
+// Halaman yang sedang dibuka
+$current_page = basename($_SERVER['PHP_SELF']);
+
+// Role pengguna
+$role = strtolower((string)($_SESSION['role'] ?? ''));
+
+// Inisialisasi menu agar tidak terjadi Undefined variable
+$menu = [];
+
+// Menu Admin
 $menuAdmin = [
     'dashboard.php' => 'Dashboard',
     'kelola_siswa.php' => 'Data Siswa',
@@ -20,6 +27,7 @@ $menuAdmin = [
     'about_me.php' => 'About Me'
 ];
 
+// Menu Guru
 $menuGuru = [
     'dashboard.php' => 'Dashboard',
     'catatan_pelanggaran.php' => 'Catat Pelanggaran',
@@ -29,8 +37,7 @@ $menuGuru = [
     'about_me.php' => 'About Me'
 ];
 
-$menu = [];
-
+// Tentukan menu berdasarkan role
 if ($role === 'admin') {
     $menu = $menuAdmin;
 } elseif ($role === 'guru') {
@@ -39,7 +46,10 @@ if ($role === 'admin') {
 ?>
 
 <style>
-    /* Pengaturan dasar halaman */
+    * {
+        box-sizing: border-box;
+    }
+
     html,
     body {
         margin: 0;
@@ -49,7 +59,7 @@ if ($role === 'admin') {
         background: #f5f7f9;
     }
 
-    /* Sidebar selalu di sebelah kiri */
+    /* Sidebar */
     .app-sidebar {
         position: fixed;
         top: 0;
@@ -64,16 +74,13 @@ if ($role === 'admin') {
         z-index: 1000;
     }
 
-    /* Judul sidebar */
     .app-sidebar h4 {
         color: #ffffff;
         font-size: 21px;
         font-weight: bold;
         margin: 0 0 24px;
-        padding: 0;
     }
 
-    /* Daftar menu */
     .app-sidebar nav {
         display: flex;
         flex-direction: column;
@@ -89,22 +96,18 @@ if ($role === 'admin') {
         font-size: 14px;
         text-decoration: none;
         border-radius: 4px;
-        transition: background-color 0.15s ease;
     }
 
-    /* Efek saat menu disentuh */
     .app-sidebar nav a:hover {
         background: #495057;
         color: #ffffff;
     }
 
-    /* Menu halaman yang sedang dibuka */
     .app-sidebar nav a.active {
         background: #0d6efd;
         color: #ffffff;
     }
 
-    /* Garis pemisah */
     .app-sidebar nav hr {
         width: 100%;
         border: 0;
@@ -112,18 +115,16 @@ if ($role === 'admin') {
         margin: 15px 0;
     }
 
-    /* Tombol logout */
     .app-sidebar nav a.logout {
         color: #ff5964;
-        margin-top: 4px;
+        margin-top: 5px;
     }
 
     .app-sidebar nav a.logout:hover {
         background: #495057;
-        color: #ff5964;
     }
 
-    /* Konten utama berada di kanan sidebar */
+    /* Konten utama */
     .app-main {
         display: block;
         width: auto;
@@ -142,15 +143,11 @@ if ($role === 'admin') {
         width: 100%;
     }
 
-    /* Tampilan pada layar HP */
+    /* Tampilan layar kecil */
     @media (max-width: 767.98px) {
         .app-sidebar {
             position: relative;
-            top: auto;
-            left: auto;
-            bottom: auto;
             width: 100%;
-            max-width: 100%;
             height: auto;
             min-height: 0;
         }
@@ -169,17 +166,16 @@ if ($role === 'admin') {
     <nav>
         <?php foreach ($menu as $file => $label): ?>
             <a
-                href="<?= BASE_URL . '/' . $file ?>"
-                class="<?= $current_page === $file ? 'active' : '' ?>"
-                <?= $current_page === $file ? 'aria-current="page"' : '' ?>
+                href="<?= htmlspecialchars($file, ENT_QUOTES, 'UTF-8') ?>"
+                class="<?= ($current_page === $file) ? 'active' : '' ?>"
+                <?= ($current_page === $file)
+                    ? 'aria-current="page"'
+                    : '' ?>
             ><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></a>
         <?php endforeach; ?>
 
         <hr>
 
-        <a href="<?= BASE_URL ?>/logout.php" class="logout">
-            Logout
-        </a>
+        <a href="logout.php" class="logout">Logout</a>
     </nav>
 </aside>
-```
