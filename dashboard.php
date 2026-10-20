@@ -31,63 +31,75 @@ $username = htmlspecialchars(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Pelanggaran Siswa</title>
 
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <!-- Bootstrap 5 agar min-vh-100 berfungsi -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet">
 </head>
 
-<body>
+<body class="bg-white">
 
-<div class="container-fluid">
-    <div class="row">
+<div class="container-fluid min-vh-100 p-0">
+
+    <div class="row min-vh-100 g-0 align-items-stretch">
 
         <!-- SIDEBAR -->
-        <aside class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+        <aside class="col-md-3 col-lg-2 bg-dark text-white min-vh-100 p-3 d-flex flex-column">
+
             <h4 class="text-white mb-4">
                 Pelanggaran Siswa
             </h4>
 
             <ul class="nav nav-pills flex-column">
 
+                <!-- DASHBOARD -->
                 <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link active">
+                    <a href="dashboard.php"
+                       class="nav-link active">
                         Dashboard
                     </a>
                 </li>
 
                 <?php if ($role === 'admin') { ?>
 
+                    <!-- MENU ADMIN -->
                     <li class="nav-item mb-2">
-                        <a href="kelola_siswa.php" class="nav-link text-white">
+                        <a href="kelola_siswa.php"
+                           class="nav-link text-white">
                             Data Siswa
                         </a>
                     </li>
 
                     <li class="nav-item mb-2">
-                        <a href="kelola_guru.php" class="nav-link text-white">
+                        <a href="kelola_guru.php"
+                           class="nav-link text-white">
                             Data Guru
                         </a>
                     </li>
 
                     <li class="nav-item mb-2">
-                        <a href="kelola_kelas.php" class="nav-link text-white">
+                        <a href="kelola_kelas.php"
+                           class="nav-link text-white">
                             Data Kelas
                         </a>
                     </li>
 
                     <li class="nav-item mb-2">
-                        <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                        <a href="kelola_tahun_ajaran.php"
+                           class="nav-link text-white">
                             Data Tahun Ajaran
                         </a>
                     </li>
 
                     <li class="nav-item mb-2">
-                        <a href="kelola_walikelas.php" class="nav-link text-white">
+                        <a href="kelola_walikelas.php"
+                           class="nav-link text-white">
                             Data Wali Kelas
                         </a>
                     </li>
 
                     <li class="nav-item mb-2">
-                        <a href="penempatan_siswa.php" class="nav-link text-white">
+                        <a href="penempatan_siswa.php"
+                           class="nav-link text-white">
                             Penempatan Siswa
                         </a>
                     </li>
@@ -108,6 +120,7 @@ $username = htmlspecialchars(
 
                 <?php } else { ?>
 
+                    <!-- MENU GURU -->
                     <li class="nav-item mb-2">
                         <a href="catatan_pelanggaran.php"
                            class="nav-link text-white">
@@ -116,32 +129,38 @@ $username = htmlspecialchars(
                     </li>
 
                     <li class="nav-item mb-2">
-                        <a href="rekap_poin.php" class="nav-link text-white">
+                        <a href="rekap_poin.php"
+                           class="nav-link text-white">
                             Rekap Poin
                         </a>
                     </li>
 
                 <?php } ?>
 
+                <!-- MENU ABOUT ME -->
                 <li class="nav-item mb-2">
-                    <a href="about_me.php" class="nav-link text-white">
+                    <a href="about_me.php"
+                       class="nav-link text-white">
                         About Me
                     </a>
                 </li>
 
-                <hr class="bg-secondary">
-
-                <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">
-                        Logout
-                    </a>
-                </li>
-
             </ul>
+
+            <hr class="border-secondary">
+
+            <!-- LOGOUT -->
+            <div class="mt-auto">
+                <a href="logout.php"
+                   class="nav-link text-danger">
+                    Logout
+                </a>
+            </div>
+
         </aside>
 
         <!-- KONTEN UTAMA -->
-        <main class="col-md-9 col-lg-10 p-4">
+        <main class="col-md-9 col-lg-10 p-4 bg-white">
 
             <h2>Dashboard</h2>
 
@@ -152,11 +171,13 @@ $username = htmlspecialchars(
 
             <p>
                 Role:
-                <strong><?= htmlspecialchars(
-                    ucfirst($role),
-                    ENT_QUOTES,
-                    'UTF-8'
-                ); ?></strong>
+                <strong>
+                    <?= htmlspecialchars(
+                        ucfirst($role),
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ); ?>
+                </strong>
             </p>
 
             <hr>
@@ -164,28 +185,40 @@ $username = htmlspecialchars(
             <!-- KARTU DATA -->
             <div class="row">
 
+                <!-- KARTU SISWA -->
                 <div class="col-md-4 mb-3">
                     <div class="card shadow-sm">
                         <div class="card-body">
-                            <h5 class="card-title">Data Siswa</h5>
+                            <h5 class="card-title">
+                                Data Siswa
+                            </h5>
+
                             <h2>120</h2>
                         </div>
                     </div>
                 </div>
 
+                <!-- KARTU GURU -->
                 <div class="col-md-4 mb-3">
                     <div class="card shadow-sm">
                         <div class="card-body">
-                            <h5 class="card-title">Data Guru</h5>
+                            <h5 class="card-title">
+                                Data Guru
+                            </h5>
+
                             <h2>25</h2>
                         </div>
                     </div>
                 </div>
 
+                <!-- KARTU KELAS -->
                 <div class="col-md-4 mb-3">
                     <div class="card shadow-sm">
                         <div class="card-body">
-                            <h5 class="card-title">Kelas</h5>
+                            <h5 class="card-title">
+                                Kelas
+                            </h5>
+
                             <h2>12</h2>
                         </div>
                     </div>
@@ -195,6 +228,7 @@ $username = htmlspecialchars(
 
             <hr>
 
+            <!-- INFORMASI DASHBOARD -->
             <h4>Dashboard Pelanggaran Siswa</h4>
 
             <p>
@@ -202,9 +236,36 @@ $username = htmlspecialchars(
                 Silakan pilih menu di sebelah kiri untuk melanjutkan.
             </p>
 
+            <?php if ($role === 'admin') { ?>
+
+                <a href="kelola_siswa.php"
+                   class="btn btn-primary">
+                    Kelola Data Siswa
+                </a>
+
+                <a href="kelola_pelanggaran.php"
+                   class="btn btn-secondary">
+                    Data Pelanggaran
+                </a>
+
+            <?php } else { ?>
+
+                <a href="catatan_pelanggaran.php"
+                   class="btn btn-primary">
+                    Catat Pelanggaran
+                </a>
+
+                <a href="rekap_poin.php"
+                   class="btn btn-secondary">
+                    Rekap Poin
+                </a>
+
+            <?php } ?>
+
         </main>
 
     </div>
+
 </div>
 
 </body>
