@@ -100,15 +100,14 @@ include 'config/koneksi.php';
             unset($_SESSION['pesan_error']);
         }
         ?>
+<form action="proses_login.php" method="POST">
 
-        <form action="proses_login.php" method="POST">
-
-            <label for="email">username</label>
+            <label for="email">username / email</label>
             <input
                 type="text"
                 name="email"
                 id="email"
-                placeholder="Masukkan username"
+                placeholder="Masukkan email..."
                 required
                 autocomplete="username"
             >
@@ -118,14 +117,14 @@ include 'config/koneksi.php';
                 type="password"
                 name="password"
                 id="password"
-                placeholder="Masukkan password"
+                placeholder="Masukkan password..."
                 required
                 autocomplete="current-password"
             >
 
+            <!-- Cukup sisakan SATU tombol login di sini -->
             <button type="submit">LOGIN</button>
 
-        </form>
 
     </div>
 

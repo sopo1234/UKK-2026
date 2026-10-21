@@ -26,7 +26,7 @@ $sql = "SELECT
             g.created_at,
             g.updated_at
         FROM t_guru g
-        JOIN t_users u ON g.user_id = u.id
+        JOIN t_user u ON g.user_id = u.id
         WHERE u.role = 'guru'
         ORDER BY g.id DESC";
 

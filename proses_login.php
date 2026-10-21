@@ -2,59 +2,42 @@
 session_start();
 include 'config/koneksi.php';
 
-// Pastikan form mengirim email dan password
 if (!isset($_POST['email'], $_POST['password'])) {
     header("Location: login.php");
     exit;
 }
 
-$email = mysqli_real_escape_string($koneksi, $_POST['email']);
+$input = mysqli_real_escape_string($koneksi, $_POST['email']);
 $password = $_POST['password'];
 
-// Cari akun berdasarkan email
-$sql = "SELECT * FROM t_users WHERE email = '$email' LIMIT 1";
-$hasil = mysqli_query($koneksi, $sql);
+// Cek apakah input cocok dengan kolom email ATAU name (username) di tabel t_user
+$query = mysqli_query($koneksi, "SELECT * FROM t_user WHERE email = '$input' OR name = '$input'");
 
-if (!$hasil) {
+if (!$query) {
     die("Query login gagal: " . mysqli_error($koneksi));
 }
 
-// Periksa akun
-if (mysqli_num_rows($hasil) == 1) {
+if (mysqli_num_rows($query) === 1) {
+    $data = mysqli_fetch_assoc($query);
 
-    $data = mysqli_fetch_assoc($hasil);
-
-    // Periksa password
     if (password_verify($password, $data['password'])) {
-
-        // Pastikan kolom ID tersedia
-        if (!isset($data['id']) || (int)$data['id'] <= 0) {
-            die("Kolom id pada t_users tidak ditemukan atau tidak valid.");
-        }
-
-        // Buat session baru
         session_regenerate_id(true);
+        $_SESSION['login']    = true;
+        $_SESSION['id_user']  = (int)$data['id'];
+        $_SESSION['name']     = $data['name'];
+        $_SESSION['email']    = $data['email'];
+        $_SESSION['role']     = $data['role'];
 
-        $_SESSION['login'] = true;
-        $_SESSION['id_user'] = (int)$data['id'];
-        $_SESSION['name'] = $data['name'];
-        $_SESSION['email'] = $data['email'];
-        $_SESSION['role'] = $data['role'];
-
-        // Pastikan session berhasil tersimpan
         session_write_close();
-
         header("Location: dashboard.php");
         exit;
-
     } else {
         $_SESSION['pesan_error'] = 'Password salah!';
         header("Location: login.php");
         exit;
     }
-
 } else {
-    $_SESSION['pesan_error'] = 'Email tidak ditemukan!';
+    $_SESSION['pesan_error'] = 'Email atau Username tidak ditemukan!';
     header("Location: login.php");
     exit;
 }

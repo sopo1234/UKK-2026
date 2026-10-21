@@ -11,6 +11,7 @@ $role = strtolower((string)($_SESSION['role'] ?? ''));
 if (!in_array($role, ['admin', 'guru'], true)) {
     exit("Akses ditolak!");
 }
+if ($role === 'guru') { header("Location: guru.php"); exit; }
 
 $username = $_SESSION['username']
     ?? $_SESSION['nama_user']

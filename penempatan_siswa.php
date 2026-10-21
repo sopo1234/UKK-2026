@@ -20,7 +20,7 @@ function h($value) {
 
 // Ambil siswa aktif
 $siswa = mysqli_query($koneksi, "
-    SELECT id, nis, nama
+    SELECT id, nisn, nama
     FROM t_siswa
     WHERE status_aktif = 1
     ORDER BY nama ASC
@@ -46,7 +46,7 @@ $kelas = mysqli_query($koneksi, "
 $sql = "
     SELECT
         ks.id,
-        s.nis,
+        s.nisn,
         s.nama AS nama_siswa,
         ta.nama AS tahun_ajaran,
         k.nama AS nama_kelas,
@@ -253,7 +253,7 @@ if (!$siswa || !$tahun || !$kelas || !$hasil) {
                 <thead class="thead-dark">
                     <tr>
                         <th>No</th>
-                        <th>NIS</th>
+                        <th>NISN</th>
                         <th>Nama Siswa</th>
                         <th>Tahun Ajaran</th>
                         <th>Kelas</th>
@@ -271,7 +271,7 @@ if (!$siswa || !$tahun || !$kelas || !$hasil) {
                 <?php while ($row = mysqli_fetch_assoc($hasil)): ?>
                     <tr>
                         <td><?= $no++; ?></td>
-                        <td><?= h($row['nis']); ?></td>
+                        <td><?= h($row['nisn']); ?></td>
                         <td><?= h($row['nama_siswa']); ?></td>
                         <td><?= h($row['tahun_ajaran']); ?></td>
                         <td><?= h($row['nama_kelas']); ?></td>

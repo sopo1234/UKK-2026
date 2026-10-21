@@ -7,7 +7,7 @@ $email = 'guru@gmail.com';
 $password = password_hash('guru123', PASSWORD_DEFAULT);
 $role = 'guru';
 
-$sql = "INSERT INTO t_users (name, email, password, role)
+$sql = "INSERT INTO t_user (name, email, password, role)
         VALUES ('$name', '$email', '$password', '$role')";
 
 if (mysqli_query($koneksi, $sql)) {

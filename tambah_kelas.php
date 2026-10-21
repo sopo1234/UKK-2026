@@ -2,90 +2,88 @@
 session_start();
 include 'config/koneksi.php';
 
-if (!isset($_SESSION['login'])) {
+// Cek apakah user sudah login
+if (!isset($_SESSION['role'])) {
     header("Location: login.php");
     exit;
 }
 
-if ($_SESSION['role'] != 'admin') {
-    die("Akses ditolak!");
+// Proses ketika tombol simpan diklik
+if (isset($_POST['simpan'])) {
+    $nama         = mysqli_real_escape_string($koneksi, $_POST['nama']);
+    $tingkat      = mysqli_real_escape_string($koneksi, $_POST['tingkat']);
+    $jurusan      = mysqli_real_escape_string($koneksi, $_POST['jurusan']);
+    $status_aktif = mysqli_real_escape_string($koneksi, $_POST['status_aktif']);
+
+    // Query INSERT ke tabel t_kelas
+    $query = "INSERT INTO t_kelas (nama, tingkat, jurusan, status_aktif) VALUES ('$nama', '$tingkat', '$jurusan', '$status_aktif')";
+    
+    if (mysqli_query($koneksi, $query)) {
+        header("Location: data_kelas.php");
+        exit;
+    } else {
+        $error = "Gagal menyimpan data kelas: " . mysqli_error($koneksi);
+    }
 }
-
-$siswa = mysqli_query($koneksi,
-    "SELECT id, nis, nama FROM t_siswa
-     WHERE status_aktif=1 ORDER BY nama");
-
-$kelas = mysqli_query($koneksi,
-    "SELECT id, nama, tingkat, jurusan FROM t_kelas
-     WHERE status_aktif=1 ORDER BY nama");
-
-$tahun = mysqli_query($koneksi,
-    "SELECT id, nama FROM t_tahun_ajaran
-     WHERE status_aktif=1 ORDER BY tanggal_mulai DESC");
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Tambah Kelas Siswa</title>
+    <title>Tambah Kelas Baru - UKK 2026</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 500px; background: white; padding: 25px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; }
+        hr { border: 0; border-top: 1px solid #dee2e6; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], select { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        a { color: #007bff; text-decoration: none; margin-left: 10px; }
+        a:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
 
-<h1>Tambah Kelas Siswa</h1>
-<a href="kelola_kelas.php">Kembali ke Kelola Kelas</a>
-<hr>
+    <div class="container">
+        <h2>Tambah Data Kelas Baru</h2>
+        <hr>
 
-<form action="proses_tambah_kelas.php" method="POST">
+        <?php if (isset($error)) : ?>
+            <p style="color: red;"><?php echo $error; ?></p>
+        <?php endif; ?>
 
-    <p>Nama Siswa</p>
-    <select name="siswa_id" required>
-        <option value="">-- Pilih Siswa --</option>
-        <?php while ($s = mysqli_fetch_assoc($siswa)) { ?>
-            <option value="<?php echo $s['id']; ?>">
-                <?php echo htmlspecialchars($s['nis'] . ' - ' . $s['nama']); ?>
-            </option>
-        <?php } ?>
-    </select>
+        <form action="" method="POST">
+            <div class="form-group">
+                <label>Nama Kelas:</label>
+                <input type="text" name="nama" required placeholder="Contoh: X RPL 1">
+            </div>
 
-    <p>Kelas</p>
-    <select name="kelas_id" required>
-        <option value="">-- Pilih Kelas --</option>
-        <?php while ($k = mysqli_fetch_assoc($kelas)) { ?>
-            <option value="<?php echo $k['id']; ?>">
-                <?php
-                echo htmlspecialchars(
-                    $k['nama'] . ' - ' . $k['tingkat'] . ' ' . $k['jurusan']
-                );
-                ?>
-            </option>
-        <?php } ?>
-    </select>
+            <div class="form-group">
+                <label>Tingkat:</label>
+                <input type="text" name="tingkat" required placeholder="Contoh: X, XI, atau XII">
+            </div>
 
-    <p>Tahun Ajaran</p>
-    <select name="tahun_ajaran_id" required>
-        <option value="">-- Pilih Tahun Ajaran --</option>
-        <?php while ($ta = mysqli_fetch_assoc($tahun)) { ?>
-            <option value="<?php echo $ta['id']; ?>">
-                <?php echo htmlspecialchars($ta['nama']); ?>
-            </option>
-        <?php } ?>
-    </select>
+            <div class="form-group">
+                <label>Jurusan:</label>
+                <input type="text" name="jurusan" required placeholder="Contoh: Rekayasa Perangkat Lunak">
+            </div>
 
-    <p>Tanggal Mulai</p>
-    <input type="date" name="tanggal_mulai" required>
+            <div class="form-group">
+                <label>Status Aktif:</label>
+                <select name="status_aktif" required>
+                    <option value="1">Aktif</option>
+                    <option value="0">Tidak Aktif</option>
+                </select>
+            </div>
 
-    <p>Tanggal Selesai</p>
-    <input type="date" name="tanggal_selesai" required>
-
-    <p>Status</p>
-    <select name="status_aktif" required>
-        <option value="1">Aktif</option>
-        <option value="0">Tidak Aktif</option>
-    </select>
-
-    <p><button type="submit" name="simpan">Simpan</button></p>
-</form>
+            <button type="submit" name="simpan">Simpan Kelas</button>
+            <a href="data_kelas.php">Kembali</a>
+        </form>
+    </div>
 
 </body>
 </html>
